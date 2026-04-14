@@ -1,0 +1,1 @@
+<img src="/static/images/logo-hknday.png" alt="Logo Kota Tasik" class="w-full h-auto object-contain">
