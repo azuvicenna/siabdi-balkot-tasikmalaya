@@ -1,6 +1,5 @@
 <div x-data="presencePage()" x-init="initLocation()">
 
-    {{-- ================== 1. NOTIFIKASI ERROR SYSTEM / RATE LIMIT ================== --}}
     @error('system')
     <div class="fixed top-4 left-0 right-0 z-60 px-4 animate-bounce">
         <div class="bg-red-500 text-white px-6 py-4 rounded-xl shadow-2xl max-w-lg mx-auto flex items-center gap-3">
@@ -24,7 +23,6 @@
     </div>
     @enderror
 
-    {{-- ================== CEK LOKASI DALAM RADIUS ================== --}}
     @if (!$locationGranted)
     <!-- ================= OVERLAY LOADING (Meminta Akses Lokasi) ================= -->
     <div x-show="showLoading" x-transition
@@ -293,10 +291,12 @@
     </div>
     @endif
     @endif
+</div>
 
-    {{-- ================= SCRIPT ALPINE.JS (FIXED) ================= --}}
-    <script>
-        function presencePage() {
+
+{{-- ================= SCRIPT ALPINE.JS (FIXED) ================= --}}
+<script>
+    function presencePage() {
         return {
             // State Lokasi
             showLoading: true,
@@ -506,5 +506,4 @@
             }
         }
     }
-    </script>
-</div>
+</script>
