@@ -22,8 +22,12 @@ class PresencePage extends Component
     use WithFileUploads;
 
     // Konfigurasi Lokasi
-    protected const CENTER_LAT = -7.316546993522394;
-    protected const CENTER_LNG = 108.19674640365119;
+    // protected const CENTER_LAT = -7.316546993522394;
+    // protected const CENTER_LNG = 108.19674640365119;
+    // protected const RADIUS_METERS = 10000;
+    // protected const EARTH_RADIUS = 6371000;
+    protected const CENTER_LAT = -7.3817108;
+    protected const CENTER_LNG = 108.6547367;
     protected const RADIUS_METERS = 10000;
     protected const EARTH_RADIUS = 6371000;
     protected const MAX_UPLOAD_SIZE = 10240; // 10MB

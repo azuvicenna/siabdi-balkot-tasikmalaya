@@ -24,8 +24,7 @@
     @enderror
 
     @if (!$locationGranted)
-    <!-- ================= OVERLAY LOADING (Meminta Akses Lokasi) ================= -->
-    <div x-show="showLoading" x-transition
+    <div wire:key="overlay-loading" x-show="showLoading" x-transition
         class="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
         <div class="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-xs w-full mx-4">
             <div class="flex justify-center mb-5">
@@ -41,11 +40,9 @@
         </div>
     </div>
 
-    {{-- ================== OVERLAY LOKASI DITOLAK / ERROR ================== --}}
-    <div x-show="showDenied" x-cloak x-transition
+    <div wire:key="overlay-denied" x-show="showDenied" x-cloak x-transition
         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
-        <div class="bg-white p-6 rounded-2xl shadow-xl text-center max-w-sm w-full mx-4 relative overflow-hidden">
-
+        <div class="bg-white p-6 rounded-3xl shadow-xl text-center max-w-sm w-full mx-4 relative overflow-hidden">
             <img src="{{ asset('static/images/deniedLocation.png') }}" alt="Location Denied"
                 class="w-32 mx-auto mb-4 drop-shadow-md"
                 onerror="this.onerror=null; this.src='https://placehold.co/400x400?text=Location+Error';">
@@ -55,9 +52,8 @@
             </h3>
             <p class="text-gray-600 text-sm mb-4 px-2 leading-relaxed" x-text="deniedMessage"></p>
 
-            {{-- PANDUAN KHUSUS (Blocked) --}}
             <div x-show="isPermDenied"
-                class="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-5 text-left animate-fade-in-down">
+                class="bg-blue-50 border border-blue-100 rounded-xl p-4 mb-5 text-left animate-fade-in-down">
                 <p class="text-xs font-bold text-blue-800 mb-2 flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -74,16 +70,14 @@
                 </ol>
             </div>
 
-            {{-- TOMBOL AKSI --}}
             <button @click="retryLocation()"
-                class="w-full text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transform active:scale-95 transition flex items-center justify-center gap-2"
+                class="w-full text-white font-bold py-3.5 px-4 rounded-xl shadow hover:shadow-lg transform active:scale-95 transition-all flex items-center justify-center gap-2"
                 :class="isPermDenied ? 'bg-blue-600 hover:bg-blue-700' : 'bg-[#5065A4] hover:opacity-90'">
                 <span x-text="isPermDenied ? 'Refresh Halaman' : 'Cek Lokasi Lagi'"></span>
             </button>
         </div>
     </div>
     @else
-    {{-- ================== FORM MUNCUL KALAU DALAM RADIUS ================== --}}
 
     <x-peserta.banner />
     @if (!$isClosedPresence)
@@ -91,14 +85,10 @@
         <div class="flex justify-between items-center mb-2">
             <span class="text-gray-600 text-sm font-semibold">Nama Lengkap</span>
         </div>
-
         <input type="text" wire:model="nama" placeholder="Masukkan Nama Lengkap Anda"
-            class="w-full border-2 border-gray-300 rounded-lg p-3 text-sm font-semibold focus:border-blue-500 focus:outline-none transition-colors @error('nama') @enderror">
-
+            class="w-full border-2 border-gray-200 rounded-xl p-3.5 text-sm font-semibold focus:border-blue-500 focus:outline-none transition-colors shadow-sm @error('nama') @enderror">
         @error('nama')
-        <p class="text-red-500 text-xs mt-1 font-bold">
-            {{ $message }}
-        </p>
+        <p class="text-red-500 text-xs mt-1.5 font-bold">{{ $message }}</p>
         @enderror
     </div>
 
@@ -106,104 +96,119 @@
         <div class="flex justify-between items-center mb-2">
             <span class="text-gray-600 text-sm font-semibold">Asal Instansi</span>
         </div>
-
         <input type="text" wire:model="unit_kerja" placeholder="Masukkan Asal Instansi Anda"
-            class="w-full border-2 border-gray-300 rounded-lg p-3 text-sm font-semibold focus:border-blue-500 focus:outline-none transition-colors @error('unit_kerja') @enderror">
-
+            class="w-full border-2 border-gray-200 rounded-xl p-3.5 text-sm font-semibold focus:border-blue-500 focus:outline-none transition-colors shadow-sm @error('unit_kerja') @enderror">
         @error('unit_kerja')
-        <p class="text-red-500 text-xs mt-1 font-bold">
-            {{ $message }}
-        </p>
+        <p class="text-red-500 text-xs mt-1.5 font-bold">{{ $message }}</p>
         @enderror
     </div>
 
-    {{-- 3. Upload Selfie Section --}}
-    <div class="mb-4">
+    <div class="mb-5">
 
-        {{-- Pop-up Modal Validasi Wajah --}}
-        <div x-show="showFaceModal" x-cloak x-transition
-            class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div class="bg-white p-6 rounded-2xl shadow-2xl text-center max-w-xs w-full mx-4">
-
-                {{-- Icon berdasarkan tipe --}}
-                <div class="mb-4">
+        <div x-show="showFaceModal" x-cloak x-transition.opacity
+            class="fixed inset-0 bg-black/70 flex items-center justify-center z-60 backdrop-blur-sm p-4">
+            <div
+                class="bg-white p-6 rounded-3xl shadow-2xl text-center max-w-xs w-full transform transition-all scale-100">
+                <div class="mb-5">
                     <template x-if="faceModalType === 'loading'">
                         <div class="flex justify-center">
-                            <div class="w-14 h-14 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin">
+                            <div class="w-16 h-16 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin">
                             </div>
                         </div>
                     </template>
                     <template x-if="faceModalType === 'success'">
-                        <div class="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                        <div
+                            class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto scale-110">
                             <svg class="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3"
                                     d="M5 13l4 4L19 7" />
                             </svg>
                         </div>
                     </template>
                     <template x-if="faceModalType === 'not_detected'">
-                        <div class="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+                        <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
                             <svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                     d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </div>
                     </template>
                     <template x-if="faceModalType === 'too_far'">
-                        <div class="w-14 h-14 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
+                        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
                             <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"
                                     d="M12 9v2m0 4h.01M12 4a8 8 0 100 16A8 8 0 0012 4z" />
                             </svg>
                         </div>
                     </template>
                 </div>
 
-                <h3 class="font-bold text-gray-800 text-base mb-1" x-text="faceModalTitle"></h3>
-                <p class="text-gray-500 text-sm mb-5 leading-relaxed" x-text="faceModalMessage"></p>
+                <h3 class="font-bold text-gray-900 text-lg mb-2" x-text="faceModalTitle"></h3>
+                <p class="text-gray-500 text-sm mb-6 leading-relaxed px-2" x-text="faceModalMessage"></p>
 
                 <template x-if="faceModalType !== 'loading'">
                     <button @click="closeFaceModal()"
-                        :class="faceModalType === 'success' ? 'bg-green-600 hover:bg-green-700' : (faceModalType === 'too_far' ? 'bg-yellow-500 hover:bg-yellow-600' : 'bg-red-600 hover:bg-red-700')"
-                        class="w-full text-white font-bold py-2.5 rounded-xl transition">
-                        <span x-text="faceModalType === 'success' ? 'Lanjut ✓' : 'Coba Lagi'"></span>
+                        :class="faceModalType === 'success' ? 'bg-green-600 hover:bg-green-700 shadow-green-200' : (faceModalType === 'too_far' ? 'bg-yellow-500 hover:bg-yellow-600 shadow-yellow-200' : 'bg-red-600 hover:bg-red-700 shadow-red-200')"
+                        class="w-full text-white font-bold py-3.5 rounded-xl shadow-lg transition-all active:scale-95 cursor-pointer">
+                        <span x-text="faceModalType === 'success' ? 'Lanjut' : 'Coba Lagi'"></span>
                     </button>
                 </template>
             </div>
         </div>
 
-        {{-- Modal Kamera Live --}}
-        <div x-show="showCameraModal" x-cloak x-transition
-            class="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-            <div class="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-sm mx-4">
-                <div class="bg-[#5065A4] px-4 py-3 flex items-center justify-between">
-                    <span class="text-white font-bold text-sm">📸 Ambil Foto Selfie</span>
-                    <button @click="closeCameraModal()" class="text-white/70 hover:text-white">
+        <div x-show="showCameraModal" x-cloak x-transition.opacity
+            class="fixed inset-0 bg-gray-900/95 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+            <div
+                class="bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-lg flex flex-col transform transition-all">
+                <div class="bg-[#5065A4] px-5 py-4 flex items-center justify-between">
+                    <span class="text-white font-bold text-sm flex items-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Ambil Foto Selfie
+                    </span>
+                    <button @click="closeCameraModal()"
+                        class="text-white/70 hover:text-white bg-white/10 rounded-full p-1.5 transition-colors">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </div>
-                <div class="relative bg-black">
-                    <video id="cameraVideo" autoplay playsinline muted class="w-full block"
-                        style="max-height: 320px; object-fit: cover;"></video>
-                    {{-- Overlay panduan frame wajah --}}
-                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <div class="w-40 h-48 border-2 border-white/60 rounded-[50%] opacity-60"></div>
+
+                <div
+                    class="relative bg-black flex-1 aspect-3/4 sm:aspect-video flex items-center justify-center overflow-hidden">
+                    <video id="cameraVideo" autoplay playsinline muted class="absolute inset-0 w-full h-full object-cover -scale-x-100"></video>
+
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                        <div class="w-48 h-64 border-2 rounded-[100px] shadow-[0_0_0_999px_rgba(0,0,0,0.65)] relative transition-colors duration-300"
+                            :class="liveStatus === 'success' ? 'border-green-500' : 'border-white/60'">
+                            <div class="absolute inset-0 border-4 rounded-[100px] animate-pulse"
+                                :class="liveStatus === 'success' ? 'border-green-400/50' : 'border-white/20'"></div>
+                        </div>
                     </div>
                     <canvas id="cameraCanvas" class="hidden"></canvas>
                 </div>
-                <div class="p-4">
-                    <p class="text-gray-500 text-xs text-center mb-3">Pastikan wajah berada di dalam lingkaran</p>
-                    <button @click="capturePhoto()" :disabled="isCameraCapturing"
-                        class="w-full bg-[#5065A4] text-white font-bold py-3 rounded-xl disabled:opacity-60 disabled:cursor-wait flex items-center justify-center gap-2 transition">
+
+                <div class="p-5 bg-gray-50">
+                    <div class="text-center mb-4 transition-colors duration-300 font-bold"
+                        :class="{'text-green-600': liveStatus === 'success', 'text-yellow-600': liveStatus === 'too_far', 'text-red-600': liveStatus === 'not_detected' || liveStatus === 'searching'}">
+                        <p class="text-sm" x-text="liveMessage"></p>
+                    </div>
+
+                    <button @click="capturePhoto()" :disabled="liveStatus !== 'success' || isCameraCapturing"
+                        class="w-full text-white font-bold py-4 rounded-xl shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all active:scale-95"
+                        :class="liveStatus === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-gray-400'">
                         <template x-if="!isCameraCapturing">
-                            <span>📸 Ambil Foto & Verifikasi</span>
+                            <span>Ambil Foto</span>
                         </template>
                         <template x-if="isCameraCapturing">
                             <span class="flex items-center gap-2">
-                                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
                                         stroke-width="4" />
                                     <path class="opacity-75" fill="currentColor"
@@ -217,108 +222,115 @@
             </div>
         </div>
 
-        {{-- Trigger Button / Preview --}}
         <div @click="openCamera()"
-            class="relative cursor-pointer bg-white border-2 border-dashed border-blue-300 rounded-xl block text-center hover:bg-blue-50 transition overflow-hidden group">
+            class="relative cursor-pointer bg-white border-2 border-dashed border-blue-300 rounded-2xl block text-center hover:bg-blue-50 transition-colors overflow-hidden">
 
             <div x-show="isUploading" style="display:none;"
-                class="absolute inset-0 bg-white/90 z-20 flex flex-col items-center justify-center backdrop-blur-sm">
-                <div class="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2">
-                </div>
-                <span class="text-xs font-bold text-blue-600">Upload <span x-text="progress + '%'"></span></span>
+                class="absolute inset-0 bg-white/95 z-20 flex flex-col items-center justify-center backdrop-blur-sm rounded-2xl">
+                <div class="w-12 h-12 border-4 border-blue-100 border-t-blue-600 rounded-full animate-spin mb-3"></div>
+                <span class="text-sm font-bold text-blue-700 bg-blue-50 px-3 py-1 rounded-full">Upload <span
+                        x-text="progress + '%'"></span></span>
             </div>
 
             @if ($photo)
-            <div class="relative">
-                <img src="{{ $photo->temporaryUrl() }}" class="w-full object-cover block rounded-lg" alt="Preview">
-                <div
-                    class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <span class="text-white text-sm font-bold bg-black/50 px-3 py-1 rounded-full">Ganti Foto</span>
+            <div class="relative group">
+                <img src="{{ $photo->temporaryUrl() }}" class="w-full object-cover block h-[200px]" alt="Preview">
+                <div class="absolute bottom-3 left-0 right-0 flex justify-center">
+                    <span
+                        class="bg-black/70 backdrop-blur-sm text-white text-xs font-bold px-4 py-2 rounded-full shadow-lg flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                            </path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        </svg>
+                        Ganti Foto
+                    </span>
                 </div>
             </div>
             @else
-            <div class="min-h-[150px] flex flex-col items-center justify-center p-6">
-                <img src="{{ asset('static/images/imgUpload.svg') }}" class="mb-3 w-16 h-16 opacity-80" alt="Upload" />
-                <p class="text-gray-800 text-sm font-bold">Ambil Foto Selfie Untuk Kehadiran</p>
-                <p class="text-gray-500 text-xs mt-1">Ketuk di sini untuk membuka kamera</p>
+            <div class="min-h-40 flex flex-col items-center justify-center p-6">
+                <div class="bg-blue-50 p-4 rounded-full mb-3 group-hover:scale-110 transition-transform">
+                    <img src="{{ asset('static/images/imgUpload.svg') }}" class="w-10 h-10 opacity-80" alt="Upload" />
+                </div>
+                <p class="text-gray-800 text-sm font-bold">Ambil Foto Selfie Kehadiran</p>
+                <p class="text-gray-500 text-xs mt-1.5 font-medium">Ketuk di sini untuk buka kamera</p>
             </div>
             @endif
         </div>
 
         @error('photo')
-        <p class="text-red-500 text-sm mt-2 text-center font-semibold">{{ $message }}</p>
+        <p class="text-red-500 text-xs mt-2 font-bold px-1">{{ $message }}</p>
         @enderror
     </div>
 
-    <!-- Checkbox Agreement -->
-    <div class="mb-4">
-        <label class="flex items-start gap-2 cursor-pointer p-2 rounded hover:bg-gray-50">
-            <input type="checkbox" class="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+    <div wire:key="checkbox-agreement" class="mb-5 bg-gray-50 border border-gray-200 p-4 rounded-xl">
+        <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox"
+                class="mt-0.5 w-5 h-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500 transition-colors"
                 wire:model.live="agreement">
             <div class="flex flex-col text-gray-600 text-xs leading-relaxed">
-                <span class="font-semibold text-gray-800">Saya menyatakan data di atas benar.</span>
-                <span>
-                    Data ini akan digunakan untuk undian doorprize.
-                </span>
+                <span class="font-bold text-gray-800 text-sm mb-0.5">Konfirmasi Data Benar</span>
+                <span>Saya menyatakan data dan foto di atas adalah benar. Data ini akan digunakan untuk undian
+                    doorprize.</span>
             </div>
         </label>
         @error('agreement')
-        <span class="text-red-500 text-xs ml-6">{{ $message }}</span>
+        <span class="text-red-500 text-xs font-bold block mt-2 ml-8">{{ $message }}</span>
         @enderror
     </div>
 
     <button wire:click="klaimKupon" wire:loading.attr="disabled" wire:loading.class="opacity-75 cursor-wait" {{
         (!$agreement || !$photo) ? 'disabled' : '' }}
-        class="w-full bg-[#5065A4] text-white font-bold py-3.5 rounded-xl shadow-lg hover:shadow-xl transform transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-
-        <span wire:loading.remove wire:target="klaimKupon">Klaim Kupon</span>
-
-        <span wire:loading wire:target="klaimKupon" class="flex items-center gap-1">
+        class="w-full bg-[#5065A4] text-white font-bold py-4 rounded-xl shadow-lg hover:shadow-xl transform transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2">
+        <span wire:loading.remove wire:target="klaimKupon" class="text-base">Klaim Kupon Doorprize</span>
+        <span wire:loading wire:target="klaimKupon" class="flex items-center gap-2">
             <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor"
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                 </path>
             </svg>
+            Memproses...
         </span>
     </button>
     @else
     <div class="mb-4">
         <p
-            class="text-red-600 font-semibold text-center bg-red-50 p-2 rounded border border-red-200 text-sm flex items-center justify-center gap-2">
-            Maaf Pendaftaran kupon doorprize sudah ditutup!
+            class="text-red-600 font-bold text-center bg-red-50 py-4 px-3 rounded-xl border border-red-200 text-sm flex flex-col items-center justify-center gap-2 shadow-sm">
+            <svg class="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            Maaf, pendaftaran kupon doorprize sudah ditutup!
         </p>
     </div>
     @endif
     @endif
 </div>
 
-
-{{-- ================= SCRIPT ALPINE.JS (FIXED) ================= --}}
 <script>
     function presencePage() {
         return {
-            // State Lokasi
             showLoading: true,
             showDenied: false,
             isPermDenied: false,
             deniedMessage: '',
-
-            // State Upload
             isUploading: false,
             progress: 0,
-
-            // State Kamera
             showCameraModal: false,
             isCameraCapturing: false,
             cameraStream: null,
+            
+            liveStatus: 'loading',
+            liveMessage: '',
+            detectionInterval: null,
 
-            // State Pop-up Face Modal
             showFaceModal: false,
-            faceModalType: 'loading', // 'loading' | 'success' | 'not_detected' | 'too_far'
+            faceModalType: 'loading',
             faceModalTitle: '',
             faceModalMessage: '',
-            _pendingBlob: null, // simpan sementara blob hasil foto jika sukses
 
             initLocation() {
                 window.addEventListener('location-radius-error', () => {
@@ -342,9 +354,14 @@
                 } else {
                     this.requestLocation();
                 }
+
+                if (typeof FaceRecognition !== 'undefined') {
+                    FaceRecognition.loadModels().then(() => {
+                        console.log('AI Model Wajah sudah siap!');
+                    }).catch(console.error);
+                }
             },
 
-            // --- HELPER LOKASI ---
             showDeniedState(msg) {
                 this.showLoading = false;
                 this.showDenied = true;
@@ -368,7 +385,6 @@
                             @this.call('checkLocation', pos.coords.latitude, pos.coords.longitude);
                         },
                         (error) => {
-                            console.error('Geolocation error:', error);
                             if (error.code === 1) {
                                 this.handlePermissionDenied();
                                 @this.call('locationFailed', 1);
@@ -390,26 +406,56 @@
                 this.deniedMessage = "Akses lokasi diblokir browser. Anda perlu mengizinkannya secara manual.";
             },
 
-            // --- KAMERA ---
             async openCamera() {
                 this.showCameraModal = true;
-                // Preload model face-api saat kamera dibuka
+                this.liveStatus = 'searching';
+                this.liveMessage = 'Menyiapkan kamera...';
+
                 if (typeof FaceRecognition !== 'undefined') {
                     FaceRecognition.loadModels().catch(console.error);
                 }
+                
                 await this.$nextTick();
                 const video = document.getElementById('cameraVideo');
+                
                 try {
                     this.cameraStream = await navigator.mediaDevices.getUserMedia({
-                        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
                         audio: false
                     });
                     video.srcObject = this.cameraStream;
+                    
+                    video.onloadedmetadata = () => {
+                        this.startLiveValidation(video);
+                    };
                 } catch (err) {
-                    console.error('Kamera error:', err);
                     this.showCameraModal = false;
-                    this.showFacePopup('not_detected', 'Kamera Tidak Bisa Dibuka', 'Pastikan izin kamera sudah diberikan pada browser.');
+                    this.showFacePopup('not_detected', 'Kamera Error', 'Pastikan izin kamera sudah diberikan.');
                 }
+            },
+
+            startLiveValidation(video) {
+                if (this.detectionInterval) clearInterval(this.detectionInterval);
+                
+                this.detectionInterval = setInterval(async () => {
+                    if (!this.showCameraModal || video.readyState !== 4 || this.isCameraCapturing) return;
+
+                    try {
+                        const detection = await FaceRecognition.detectFace(video);
+                        const result = FaceRecognition.validate(detection);
+
+                        if (result.valid) {
+                            this.liveStatus = 'success';
+                            this.liveMessage = 'Wajah terdeteksi! Silakan klik ambil foto.';
+                        } else {
+                            this.liveStatus = result.type;
+                            this.liveMessage = result.message || 'Posisikan wajah ke area terang';
+                        }
+                    } catch (e) {
+                        this.liveStatus = 'not_detected';
+                        this.liveMessage = 'Mencari wajah...';
+                    }
+                }, 500);
             },
 
             closeCameraModal() {
@@ -418,52 +464,36 @@
             },
 
             stopCamera() {
+                if (this.detectionInterval) clearInterval(this.detectionInterval);
                 if (this.cameraStream) {
                     this.cameraStream.getTracks().forEach(t => t.stop());
                     this.cameraStream = null;
                 }
             },
 
-            async capturePhoto() {
-                if (this.isCameraCapturing) return;
+            capturePhoto() {
+                if (this.isCameraCapturing || this.liveStatus !== 'success') return;
+                
                 this.isCameraCapturing = true;
+                if (this.detectionInterval) clearInterval(this.detectionInterval);
 
                 const video = document.getElementById('cameraVideo');
                 const canvas = document.getElementById('cameraCanvas');
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0);
+                
+                const ctx = canvas.getContext('2d');
+                ctx.translate(canvas.width, 0);
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                // Tampilkan loading modal face detection
-                this.showFacePopup('loading', 'Mendeteksi Wajah...', 'Harap tunggu, sistem sedang memverifikasi wajah Anda.');
-
-                try {
-                    // Pastikan model sudah loaded
-                    const loaded = await FaceRecognition.loadModels();
-                    if (!loaded) throw new Error('Model gagal dimuat');
-
-                    const detection = await FaceRecognition.detectFace(canvas);
-                    const result = FaceRecognition.validate(detection);
-
-                    if (result.valid) {
-                        // Simpan blob dulu, upload setelah user konfirmasi
-                        canvas.toBlob((blob) => {
-                            this._pendingBlob = blob;
-                            this.isCameraCapturing = false;
-                            this.showFacePopup('success', 'Verifikasi Berhasil! ✅', 'Wajah berhasil terdeteksi. Klik Lanjut untuk menggunakan foto ini.');
-                        }, 'image/jpeg', 0.7);
-                    } else {
-                        this.isCameraCapturing = false;
-                        this.showFacePopup(result.type, result.type === 'too_far' ? '⚠️ Wajah Terlalu Jauh' : '❌ Wajah Tidak Terdeteksi', result.message);
-                    }
-                } catch (err) {
-                    console.error('Face detection error:', err);
+                canvas.toBlob((blob) => {
                     this.isCameraCapturing = false;
-                    this.showFacePopup('not_detected', 'Terjadi Kesalahan', 'Gagal memproses deteksi wajah. Silakan coba lagi.');
-                }
+                    this.closeCameraModal();
+                    this.uploadBlob(blob);
+                }, 'image/jpeg', 0.8);
             },
 
-            // --- FACE MODAL ---
             showFacePopup(type, title, message) {
                 this.faceModalType = type;
                 this.faceModalTitle = title;
@@ -473,19 +503,12 @@
 
             closeFaceModal() {
                 this.showFaceModal = false;
-                if (this.faceModalType === 'success' && this._pendingBlob) {
-                    // Upload ke Livewire dan tutup kamera
-                    this.closeCameraModal();
-                    this.uploadBlob(this._pendingBlob);
-                    this._pendingBlob = null;
-                }
-                // Jika gagal, biarkan kamera tetap terbuka
             },
 
             uploadBlob(blob) {
                 this.isUploading = true;
                 this.progress = 0;
-                const fileToUpload = new File([blob], 'selfie_compressed.jpg', {
+                const fileToUpload = new File([blob], 'selfie_live.jpg', {
                     type: 'image/jpeg',
                     lastModified: Date.now()
                 });
