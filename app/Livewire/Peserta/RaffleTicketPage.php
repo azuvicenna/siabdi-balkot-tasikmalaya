@@ -50,7 +50,8 @@ class RaffleTicketPage extends Component
     }
 
     private function loadParticipantData()
-    {$participantId = session('current_participant_id');
+    {
+        $participantId = session('current_participant_id');
 
         if (!$participantId) {
             return $this->redirectRoute('HalamanPresensi');
@@ -70,17 +71,8 @@ class RaffleTicketPage extends Component
 
         $this->detailData = [
             'nama'       => $participant->nama,
-            'unit_kerja'       => $participant->unit_kerja,
-            'fotoSelfie' => $participant->foto
-                ? Storage::disk('s3')->temporaryUrl(
-                    'photos/' . $participant->foto,
-                    now()->addDays(2)
-                )
-                : 'https://ui-avatars.com/api/?name=' . urlencode($participant->nama),
-            // 'fotoSelfie' => $participant->foto
-            //     ? asset('storage/photos/' . $participant->foto)
-            //     : 'https://ui-avatars.com/api/?name=' . urlencode($participant->nama),
-
+            'unit_kerja' => $participant->unit_kerja,
+            'fotoSelfie' => $participant->foto_selfie_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($participant->nama),
         ];
 
         $coupon = $participant->coupons->first();
