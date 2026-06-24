@@ -189,6 +189,8 @@
                                     'text-red-600': liveStatus === 'not_detected' || liveStatus === 'searching'
                                 }">
                                 <p class="text-sm" x-text="liveMessage"></p>
+                                <p class="text-xs text-gray-500 mt-1" x-show="faceRatio > 0">Nilai Wajah: <span
+                                        x-text="faceRatio"></span></p>
                             </div>
 
                             <button @click="capturePhoto()" :disabled="liveStatus !== 'success' || isCameraCapturing"
@@ -359,6 +361,7 @@
 
             liveStatus: 'loading',
             liveMessage: '',
+            faceRatio: 0,
             detectionInterval: null,
 
             showFaceModal: false,
@@ -539,41 +542,55 @@
             },
 
             startLiveValidation(video) {
-                if (this.detectionInterval) clearInterval(this.detectionInterval);
+                // Hapus setInterval lama jika ada
+                if (this.detectionInterval) clearTimeout(this.detectionInterval);
 
-                this.detectionInterval = setInterval(async () => {
+                // Buat fungsi async yang akan memanggil dirinya sendiri
+                const runDetection = async () => {
                     if (!this.showCameraModal || video.readyState !== 4 || this.isCameraCapturing) return;
 
                     try {
                         const detection = await faceapi.detectSingleFace(video, new faceapi
-                                .TinyFaceDetectorOptions())
+                                .TinyFaceDetectorOptions({
+                                    inputSize: 224,
+                                    scoreThreshold: 0.5
+                                }))
                             .withFaceLandmarks()
                             .withFaceDescriptor();
 
                         if (detection) {
-                            if (!this.faceMatcher) {
-                                this.liveStatus = 'success';
-                                this.liveMessage = 'Wajah terdeteksi. Klik ambil foto.';
-                                return;
-                            }
+                            this.faceRatio = (detection.box.width / video.videoWidth).toFixed(2);
 
-                            const bestMatch = this.faceMatcher.findBestMatch(detection.descriptor);
-
-                            if (bestMatch.label !== 'unknown') {
-                                // PERBAIKAN: Menangkap NIP dari label
-                                const [nama, instansi, nip] = bestMatch.label.split('|');
-
-                                this.liveStatus = 'success';
-                                this.liveMessage = `Dikenali: ${nama}. Klik ambil foto.`;
-
-                                @this.set('nama', nama);
-                                @this.set('unit_kerja', instansi);
-                                @this.set('nip', nip);
+                            if (this.faceRatio < 0.25) {
+                                this.liveStatus = 'too_far';
+                                this.liveMessage = 'Wajah terlalu jauh. Maju sedikit.';
+                            } else if (this.faceRatio > 0.55) {
+                                this.liveStatus = 'too_close';
+                                this.liveMessage = 'Wajah terlalu dekat. Mundur sedikit.';
                             } else {
-                                this.liveStatus = 'not_detected';
-                                this.liveMessage = 'Wajah tidak dikenali di sistem.';
+                                if (!this.faceMatcher) {
+                                    this.liveStatus = 'success';
+                                    this.liveMessage = 'Wajah di posisi pas. Klik ambil foto.';
+                                } else {
+                                    const bestMatch = this.faceMatcher.findBestMatch(detection.descriptor);
+
+                                    if (bestMatch.label !== 'unknown') {
+                                        const [nama, instansi, nip] = bestMatch.label.split('|');
+
+                                        this.liveStatus = 'success';
+                                        this.liveMessage = `Dikenali: ${nama}. Klik ambil foto.`;
+
+                                        this.$wire.set('nama', nama);
+                                        this.$wire.set('unit_kerja', instansi);
+                                        this.$wire.set('nip', nip);
+                                    } else {
+                                        this.liveStatus = 'not_detected';
+                                        this.liveMessage = 'Wajah tidak dikenali di sistem.';
+                                    }
+                                }
                             }
                         } else {
+                            this.faceRatio = 0;
                             this.liveStatus = 'not_detected';
                             this.liveMessage = 'Posisikan wajah ke area terang';
                         }
@@ -581,7 +598,12 @@
                         this.liveStatus = 'not_detected';
                         this.liveMessage = 'Mencari wajah...';
                     }
-                }, 800);
+
+                    if (!this.isCameraCapturing) {
+                        this.detectionInterval = setTimeout(runDetection, 500);
+                    }
+                };
+                runDetection();
             },
 
             closeCameraModal() {
