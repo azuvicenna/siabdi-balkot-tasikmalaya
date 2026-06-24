@@ -16,7 +16,9 @@ return new class extends Migration
             $table->string('nama')->index();
             $table->string('nip')->unique()->index()->nullable();
             $table->string('unit_kerja')->index();
-            $table->string('foto')->nullable();
+            $table->string('foto')->nullable(); 
+            $table->string('foto_kehadiran')->nullable();
+            $table->json('face_descriptor')->nullable();
             $table->enum('status_hadir', ['Hadir', 'Tidak hadir'])->default('Tidak hadir')->index();
             $table->string('latitude')->nullable();
             $table->string('longitude')->nullable();

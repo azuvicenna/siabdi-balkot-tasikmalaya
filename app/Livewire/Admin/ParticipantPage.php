@@ -25,11 +25,19 @@ class ParticipantPage extends Component
     public $selectedParticipant = null;
     public $file_import;
 
+    // Form Properties
     #[Rule('required|min:3', as: 'Nama Lengkap')]
     public $nama = '';
 
-    public $unit_kerja;
-    #[Rule('required|min:3', as: 'unit_kerja')]
+    #[Rule('nullable|unique:participants,nip', as: 'NIP')]
+    public $nip = '';
+
+    #[Rule('required|min:3', as: 'Unit Kerja')]
+    public $unit_kerja = '';
+
+    #[Rule('nullable|image|max:10240', as: 'Foto Peserta')]
+    public $foto;
+    public $face_descriptor;
 
     public function updatingSearch()
     {
@@ -38,7 +46,7 @@ class ParticipantPage extends Component
 
     public function resetForm()
     {
-        $this->reset(['nama']);
+        $this->reset(['nama', 'nip', 'unit_kerja', 'foto', 'face_descriptor', 'selectedParticipant']);
         $this->resetValidation();
     }
 
@@ -46,16 +54,26 @@ class ParticipantPage extends Component
     {
         $this->validate();
 
+        $fotoMasterPath = null;
+        if ($this->foto) {
+            $fotoMasterPath = $this->foto->store('photos', 'public');
+        }
         Participant::create([
-            'nama' => $this->nama,
+            'nama'            => $this->nama,
+            'nip'             => $this->nip,
+            'unit_kerja'      => $this->unit_kerja,
+            'foto'            => $fotoMasterPath ? basename($fotoMasterPath) : null,
+            'face_descriptor' => $this->face_descriptor ? json_decode($this->face_descriptor, true) : null,
         ]);
 
         $this->resetForm();
-
         $this->dispatch('close-modal');
-        session()->flash('message', 'Data peserta baru berhasil ditambahkan!');
+        session()->flash('message', 'Data peserta baru beserta Foto Master berhasil ditambahkan!');
     }
 
+    /**
+     * Method untuk menampilkan detail peserta ke dalam Modal
+     */
     public function showDetail($id)
     {
         $this->selectedParticipant = Participant::find($id);
@@ -87,8 +105,6 @@ class ParticipantPage extends Component
             'file_import' => 'required|mimes:xlsx,xls,csv|max:10240',
         ]);
 
-        // TRIK PENTING: Perpanjang nafas PHP biar gak timeout
-        // Set ke 300 detik (5 menit). Default biasanya cuma 30 detik.
         set_time_limit(300);
         ini_set('memory_limit', '512M');
 
@@ -109,7 +125,8 @@ class ParticipantPage extends Component
         $participants = Participant::query()
             ->when($this->search, function ($query) {
                 $query->where('nama', 'like', '%' . $this->search . '%')
-                    ->orWhere('unit_kerja', 'like', '%' . $this->search . '%');;
+                    ->orWhere('unit_kerja', 'like', '%' . $this->search . '%')
+                    ->orWhere('nip', 'like', '%' . $this->search . '%');
             })
             ->orderBy('status_hadir', 'asc')
             ->orderBy('nama', 'asc')

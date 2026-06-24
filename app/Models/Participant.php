@@ -9,6 +9,10 @@ class Participant extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'face_descriptor' => 'array',
+    ];
+
     public function coupons()
     {
         return $this->hasMany(Coupon::class, 'participant_id');
@@ -19,16 +23,19 @@ class Participant extends Model
         return $this->hasOne(Winner::class, 'participant_id');
     }
 
-    public function getFotoUrlAttribute()
+    public function getFotoMasterUrlAttribute()
     {
         if ($this->foto) {
-            // Cek apakah pakai S3 atau Lokal (Opsional, biar fleksibel)
-            // Kalau yakin S3 terus, langsung return Storage::disk('s3')->url($this->foto);
-
-            return Storage::disk('s3')->temporaryUrl('photos/' . $this->foto, now()->addDays(2));
+            return Storage::disk('public')->url('photos/' . $this->foto);
         }
-
-        // Return Avatar Default
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->nama) . '&background=random';
+    }
+
+    public function getFotoSelfieUrlAttribute()
+    {
+        if ($this->foto_kehadiran) {
+            return Storage::disk('public')->url('selfies/' . $this->foto_kehadiran);
+        }
+        return null; 
     }
 }

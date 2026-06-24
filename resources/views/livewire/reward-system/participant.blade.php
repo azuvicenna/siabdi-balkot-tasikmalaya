@@ -5,10 +5,10 @@
         <div>
             <h1 class="text-3xl md:text-4xl font-black mb-1 drop-shadow-md">Data Peserta Undian</h1>
             <div class="flex gap-4 text-sm md:text-base">
-                <p class="text-blue-200 opacity-80">Total: <span class="font-bold text-yellow-400">{{
-                        number_format($totalPeserta) }}</span></p>
-                <p class="text-blue-200 opacity-80">Hadir: <span class="font-bold text-green-400">{{
-                        number_format($totalHadir) }}</span></p>
+                <p class="text-blue-200 opacity-80">Total: <span
+                        class="font-bold text-yellow-400">{{ number_format($totalPeserta) }}</span></p>
+                <p class="text-blue-200 opacity-80">Hadir: <span
+                        class="font-bold text-green-400">{{ number_format($totalHadir) }}</span></p>
             </div>
         </div>
 
@@ -32,10 +32,10 @@
 
                     <option value="" class="text-slate-800 bg-white">Semua Unit Kerja</option>
 
-                    @foreach($units as $unit)
-                    <option value="{{ $unit }}" class="text-slate-800 bg-white">
-                        {{ $unit }}
-                    </option>
+                    @foreach ($units as $unit)
+                        <option value="{{ $unit }}" class="text-slate-800 bg-white">
+                            {{ $unit }}
+                        </option>
                     @endforeach
                 </select>
 
@@ -78,75 +78,76 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100 bg-white">
                     @forelse($participants as $index => $p)
-                    <tr class="hover:bg-blue-50/50 transition duration-200 group">
-                        {{-- Nomor Urut (Sesuai Pagination) --}}
-                        <td class="px-6 py-4 font-bold text-slate-400 group-hover:text-blue-500">
-                            {{ $participants->firstItem() + $index }}
-                        </td>
+                        <tr class="hover:bg-blue-50/50 transition duration-200 group">
+                            {{-- Nomor Urut (Sesuai Pagination) --}}
+                            <td class="px-6 py-4 font-bold text-slate-400 group-hover:text-blue-500">
+                                {{ $participants->firstItem() + $index }}
+                            </td>
 
-                        {{-- Info Pegawai --}}
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-4">
-                                {{-- Avatar / Foto --}}
-                                <img class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
-                                    src="{{ $p->foto_url }}" alt="{{ $p->nama }}">
-                                <div>
-                                    <div class="font-bold text-slate-800 text-base group-hover:text-blue-700">{{
-                                        $p->nama }}</div>
-                                    <div class="text-xs text-slate-500 mt-1">
-                                        Kode kupon:
-                                        <span
-                                            class="font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
-                                            {{ $p->coupons->first()->kode_kupon ?? '-' }}
-                                        </span>
+                            {{-- Info Pegawai --}}
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-4">
+                                    {{-- Avatar / Foto --}}
+                                    <img class="w-12 h-12 rounded-full object-cover border-2 border-white shadow-md"
+                                        src="{{ $p->foto_kehadiran ? asset('storage/selfies/' . $p->foto_kehadiran) : 'https://ui-avatars.com/api/?name=' . urlencode($p->nama) . '&background=random' }}"
+                                        alt="{{ $p->nama }}">
+                                    <div>
+                                        <div class="font-bold text-slate-800 text-base group-hover:text-blue-700">
+                                            {{ $p->nama }}</div>
+                                        <div class="text-xs text-slate-500 mt-1">
+                                            Kode kupon:
+                                            <span
+                                                class="font-mono font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200">
+                                                {{ $p->coupons->first()->kode_kupon ?? '-' }}
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        </td>
+                            </td>
 
-                        {{-- Unit Kerja --}}
-                        <td class="px-6 py-4">
-                            <div title="{{ $p->unit_kerja ?? '-' }}"
-                                class="text-sm font-medium text-slate-700 bg-slate-50 px-3 py-1 rounded-lg inline-block border border-slate-100 truncate max-w-[150px] md:max-w-[250px]">
-                                {{ $p->unit_kerja ?? '-' }}
-                            </div>
-                        </td>
+                            {{-- Unit Kerja --}}
+                            <td class="px-6 py-4">
+                                <div title="{{ $p->unit_kerja ?? '-' }}"
+                                    class="text-sm font-medium text-slate-700 bg-slate-50 px-3 py-1 rounded-lg inline-block border border-slate-100 truncate max-w-[150px] md:max-w-[250px]">
+                                    {{ $p->unit_kerja ?? '-' }}
+                                </div>
+                            </td>
 
-                        {{-- Status Kehadiran --}}
-                        <td class="px-6 py-4 text-center">
-                            @if($p->status_hadir == 'Hadir')
-                            <span
-                                class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
-                                <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                Hadir
-                            </span>
-                            @else
-                            <span
-                                class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
-                                <span class="w-2 h-2 rounded-full bg-slate-400"></span>
-                                Tidak Hadir
-                            </span>
-                            @endif
-                        </td>
+                            {{-- Status Kehadiran --}}
+                            <td class="px-6 py-4 text-center">
+                                @if ($p->status_hadir == 'Hadir')
+                                    <span
+                                        class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium bg-green-100 text-green-700 border border-green-200">
+                                        <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                        Hadir
+                                    </span>
+                                @else
+                                    <span
+                                        class="inline-flex items-center gap-1.5 py-1 px-2.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                        <span class="w-2 h-2 rounded-full bg-slate-400"></span>
+                                        Tidak Hadir
+                                    </span>
+                                @endif
+                            </td>
 
-                        {{-- Status Undian (Menang/Belum) --}}
-                        <td class="px-6 py-4 text-center">
-                            @if($p->sudah_menang)
-                            <span
-                                class="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200 shadow-sm">
-                                🏆 Menang
-                            </span>
-                            @else
-                            <span class="text-xs text-slate-400">-</span>
-                            @endif
-                        </td>
-                    </tr>
+                            {{-- Status Undian (Menang/Belum) --}}
+                            <td class="px-6 py-4 text-center">
+                                @if ($p->sudah_menang)
+                                    <span
+                                        class="inline-flex items-center gap-1 py-1 px-2.5 rounded-full text-xs font-bold bg-yellow-100 text-yellow-700 border border-yellow-200 shadow-sm">
+                                        🏆 Menang
+                                    </span>
+                                @else
+                                    <span class="text-xs text-slate-400">-</span>
+                                @endif
+                            </td>
+                        </tr>
                     @empty
-                    <tr>
-                        <td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">
-                            Data tidak ditemukan...
-                        </td>
-                    </tr>
+                        <tr>
+                            <td colspan="5" class="px-6 py-12 text-center text-slate-400 italic">
+                                Data tidak ditemukan...
+                            </td>
+                        </tr>
                     @endforelse
                 </tbody>
             </table>
@@ -159,91 +160,92 @@
     </div>
 
     @script
-    <script>
-        // --- 1. FUNGSI UTILS ---
-    
-    // Toggle Fullscreen Pemicu Tombol
-    window.toggleFullScreen = function() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-        } else {
-            if (document.exitFullscreen) document.exitFullscreen();
-        }
-    }
+        <script>
+            // --- 1. FUNGSI UTILS ---
 
-    // --- 2. LISTENER UI (YANG DIPERBAIKI) ---
-    document.addEventListener('fullscreenchange', (event) => {
-        const iconMax = document.getElementById('iconMax');
-        const iconMin = document.getElementById('iconMin');
-        const navbar  = document.getElementById('mainNavbar');
-        const container = document.getElementById('gameContainer'); // Slot Machine
-        const dataSection = document.getElementById('dataSection'); // Tabel Data
-        const body = document.body;
-
-        if (document.fullscreenElement) {
-            // === MASUK MODE FULLSCREEN ===
-            
-            // 1. Matikan Padding Body biar lega
-            body.classList.remove('p-4', 'pt-24', 'flex', 'items-center', 'justify-center');
-            
-            // 2. Sembunyikan Navbar saja (TABEL TETAP MUNCUL)
-            if (navbar) navbar.classList.add('hidden');
-            
-            // 3. Ganti Icon
-            if (iconMax && iconMin) { 
-                iconMax.classList.add('hidden'); 
-                iconMin.classList.remove('hidden'); 
+            // Toggle Fullscreen Pemicu Tombol
+            window.toggleFullScreen = function() {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                }
             }
 
-            // 4. Perbesar Slot Machine jadi Full Layar
-            if (container) {
-                container.classList.remove('max-w-6xl', 'rounded-3xl', 'border-4', 'shadow-2xl', 'min-h-[600px]');
-                container.classList.add('w-screen', 'h-screen', 'rounded-none', 'border-0');
-                container.style.width = "100vw";
-                container.style.height = "100vh";
-                container.style.maxWidth = "100%";
-                container.style.margin = "0";
-            }
-            
-            // 5. Atur Tabel (Opsional: kasih margin atas biar ga ketabrak Slot)
-            if (dataSection) {
-                // Pastikan tabel TIDAK disembunyikan
-                dataSection.classList.remove('hidden'); 
-                // Kasih jarak sedikit kalau perlu
-                dataSection.classList.add('mt-10'); 
-            }
+            // --- 2. LISTENER UI (YANG DIPERBAIKI) ---
+            document.addEventListener('fullscreenchange', (event) => {
+                const iconMax = document.getElementById('iconMax');
+                const iconMin = document.getElementById('iconMin');
+                const navbar = document.getElementById('mainNavbar');
+                const container = document.getElementById('gameContainer'); // Slot Machine
+                const dataSection = document.getElementById('dataSection'); // Tabel Data
+                const body = document.body;
 
-        } else {
-            // === KELUAR MODE FULLSCREEN ===
+                if (document.fullscreenElement) {
+                    // === MASUK MODE FULLSCREEN ===
 
-            // 1. Balikin Padding Body
-            body.classList.add('p-4', 'pt-24', 'flex', 'items-center', 'justify-center');
+                    // 1. Matikan Padding Body biar lega
+                    body.classList.remove('p-4', 'pt-24', 'flex', 'items-center', 'justify-center');
 
-            // 2. Munculkan Navbar
-            if (navbar) navbar.classList.remove('hidden');
+                    // 2. Sembunyikan Navbar saja (TABEL TETAP MUNCUL)
+                    if (navbar) navbar.classList.add('hidden');
 
-            // 3. Balikin Icon
-            if (iconMax && iconMin) { 
-                iconMax.classList.remove('hidden'); 
-                iconMin.classList.add('hidden'); 
-            }
+                    // 3. Ganti Icon
+                    if (iconMax && iconMin) {
+                        iconMax.classList.add('hidden');
+                        iconMin.classList.remove('hidden');
+                    }
 
-            // 4. Kecilkan Slot Machine
-            if (container) {
-                container.classList.add('max-w-6xl', 'rounded-3xl', 'border-4', 'shadow-2xl', 'min-h-[600px]');
-                container.classList.remove('w-screen', 'h-screen', 'rounded-none', 'border-0');
-                container.style.width = "";
-                container.style.height = "";
-                container.style.maxWidth = "";
-                container.style.margin = "";
-            }
+                    // 4. Perbesar Slot Machine jadi Full Layar
+                    if (container) {
+                        container.classList.remove('max-w-6xl', 'rounded-3xl', 'border-4', 'shadow-2xl',
+                            'min-h-[600px]');
+                        container.classList.add('w-screen', 'h-screen', 'rounded-none', 'border-0');
+                        container.style.width = "100vw";
+                        container.style.height = "100vh";
+                        container.style.maxWidth = "100%";
+                        container.style.margin = "0";
+                    }
 
-             // 5. Balikin Tabel Normal
-             if (dataSection) {
-                dataSection.classList.remove('mt-10');
-            }
-        }
-    });
-    </script>
+                    // 5. Atur Tabel (Opsional: kasih margin atas biar ga ketabrak Slot)
+                    if (dataSection) {
+                        // Pastikan tabel TIDAK disembunyikan
+                        dataSection.classList.remove('hidden');
+                        // Kasih jarak sedikit kalau perlu
+                        dataSection.classList.add('mt-10');
+                    }
+
+                } else {
+                    // === KELUAR MODE FULLSCREEN ===
+
+                    // 1. Balikin Padding Body
+                    body.classList.add('p-4', 'pt-24', 'flex', 'items-center', 'justify-center');
+
+                    // 2. Munculkan Navbar
+                    if (navbar) navbar.classList.remove('hidden');
+
+                    // 3. Balikin Icon
+                    if (iconMax && iconMin) {
+                        iconMax.classList.remove('hidden');
+                        iconMin.classList.add('hidden');
+                    }
+
+                    // 4. Kecilkan Slot Machine
+                    if (container) {
+                        container.classList.add('max-w-6xl', 'rounded-3xl', 'border-4', 'shadow-2xl', 'min-h-[600px]');
+                        container.classList.remove('w-screen', 'h-screen', 'rounded-none', 'border-0');
+                        container.style.width = "";
+                        container.style.height = "";
+                        container.style.maxWidth = "";
+                        container.style.margin = "";
+                    }
+
+                    // 5. Balikin Tabel Normal
+                    if (dataSection) {
+                        dataSection.classList.remove('mt-10');
+                    }
+                }
+            });
+        </script>
     @endscript
 </div>

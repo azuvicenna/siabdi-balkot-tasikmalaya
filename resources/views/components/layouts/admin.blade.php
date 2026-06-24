@@ -88,18 +88,20 @@
 
 <body>
     <div class="page">
-        <x-admin.navbar/>
-        
+        <x-admin.navbar />
+
         <div class="page-wrapper">
-            
+
             {{ $slot }}
-            
-            <x-admin.footer/>
+
+            <x-admin.footer />
         </div>
     </div>
 
     <script src="{{ asset('tabler/dist/js/tabler.js') }}" defer></script>
     <script src="{{ asset('tabler/dist/js/demo.js') }}" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+
 
     @livewireScripts
 </body>

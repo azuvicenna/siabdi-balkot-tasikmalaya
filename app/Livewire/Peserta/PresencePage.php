@@ -21,20 +21,10 @@ class PresencePage extends Component
 {
     use WithFileUploads;
 
-    // Konfigurasi Lokasi
-    // protected const CENTER_LAT = -7.316546993522394;
-    // protected const CENTER_LNG = 108.19674640365119;
-    // protected const RADIUS_METERS = 10000;
-    // protected const EARTH_RADIUS = 6371000;
-    protected const CENTER_LAT = -7.3817108;
-    protected const CENTER_LNG = 108.6547367;
-    protected const RADIUS_METERS = 10000;
-    protected const EARTH_RADIUS = 6371000;
-    protected const MAX_UPLOAD_SIZE = 10240; // 10MB
-
     // Properties Input
     public string $nama = '';
     public string $unit_kerja = '';
+    public ?string $nip = null;
     public $photo;
     public bool $agreement = false;
 
@@ -47,11 +37,26 @@ class PresencePage extends Component
     public ?float $userLat = null;
     public ?float $userLng = null;
 
+    // --- HELPER UNTUK MENGAMBIL SETTING DARI JSON ---
+    private function getConfig($configKey, $default = null)
+    {
+        $setting = Setting::where('key', 'geofencing')->first();
+
+        if ($setting && $setting->value) {
+            $configs = json_decode($setting->value, true);
+
+            if (is_array($configs) && array_key_exists($configKey, $configs)) {
+                return $configs[$configKey];
+            }
+        }
+
+        return $default; 
+    }
+
     public function mount()
     {
         $settings = Setting::where('key', 'status_absensi')->first();
 
-        // Cek apakah user sudah punya sesi ID (bukan NIP lagi)
         if (session()->has('current_participant_id')) {
             return redirect()->route('halamanKupon');
         }
@@ -61,7 +66,7 @@ class PresencePage extends Component
         }
     }
 
-    // --- LOGIKA LOKASI (TETAP SAMA) ---
+    // --- LOGIKA LOKASI ---
     public function checkLocation($lat, $lng)
     {
         $this->userLat = $lat;
@@ -69,7 +74,10 @@ class PresencePage extends Component
 
         $distance = $this->calculateDistance($lat, $lng);
 
-        if ($distance <= self::RADIUS_METERS) {
+        // Ambil radius dari JSON
+        $radiusMeters = (float) $this->getConfig('radius_meters', 1000000);
+
+        if ($distance <= $radiusMeters) {
             $this->locationGranted = true;
             $this->locationErrorMessage = '';
             $this->dispatch('location-granted');
@@ -92,12 +100,10 @@ class PresencePage extends Component
     {
         $this->resetErrorBag();
 
-        // 1. Cek Rate Limit (Anti Spam)
         if ($this->checkRateLimit()) {
             return;
         }
 
-        // 2. Validasi Input
         if (!$this->validateClaimRequest()) {
             return;
         }
@@ -105,11 +111,8 @@ class PresencePage extends Component
         $uploadedPath = null;
 
         try {
-            // 3. Upload Foto & Proses Database
             $uploadedPath = $this->uploadPhoto();
             $couponCode = $this->processTransaction($uploadedPath);
-
-            // 4. Sukses
             $this->handleSuccess($couponCode);
         } catch (Exception $e) {
             $this->handleFailure($e, $uploadedPath);
@@ -118,21 +121,21 @@ class PresencePage extends Component
 
     private function validateClaimRequest()
     {
-        // Validasi Nama, Foto, dan Checkbox
+        $maxSize = (int) $this->getConfig('max_upload_size', 10240);
+        $maxSizeMB = round($maxSize / 1024, 1);
+
         $this->validate([
-            'nama'      => 'required|string|min:3|max:100',
-            'unit_kerja'      => 'required|string|min:3|max:100',
-            'photo'     => 'required|image|max:' . self::MAX_UPLOAD_SIZE,
-            'agreement' => 'accepted'
+            'nama'       => 'required|string',
+            'unit_kerja' => 'required|string',
+            'photo'      => 'required|image|max:' . $maxSize,
+            'agreement'  => 'accepted'
         ], [
-            'nama.required'      => 'Nama wajib diisi.',
-            'unit_kerja.required'      => 'Asal Instansi wajib diisi.',
+            'nama.required'      => 'Wajah belum terdeteksi. Silakan ambil foto ulang.',
             'photo.required'     => 'Foto selfie wajib diupload.',
-            'photo.max'          => 'Ukuran foto terlalu besar (Max 10MB).',
+            'photo.max'          => 'Ukuran foto terlalu besar (Max ' . $maxSizeMB . 'MB).',
             'agreement.accepted' => 'Anda harus menyetujui pernyataan data.'
         ]);
 
-        // Validasi Lokasi
         if (!$this->locationGranted || is_null($this->userLat) || is_null($this->userLng)) {
             $this->addError('location', 'Posisi belum terverifikasi. Pastikan GPS aktif.');
             return false;
@@ -143,18 +146,31 @@ class PresencePage extends Component
 
     private function uploadPhoto()
     {
-        // Generate nama file unik berdasarkan Nama User + Wakt
         $safeName = preg_replace('/[^A-Za-z0-9]/', '', $this->nama);
         $filename = 'selfie_' . $safeName . '_' . time() . '.jpg';
-
-        // return $this->photo->storeAs('photos', $filename, 'public');
-        return $this->photo->storeAs('photos', $filename, 's3');
+        return $this->photo->storeAs('selfies', $filename, 'public');
     }
 
     private function processTransaction($uploadedPath)
     {
         return DB::transaction(function () use ($uploadedPath) {
-            // A. Cek Ketersediaan Kupon (Locking)
+            $participantQuery = Participant::where('nama', $this->nama)
+                ->where('unit_kerja', $this->unit_kerja);
+
+            if ($this->nip && $this->nip !== '-') {
+                $participantQuery->where('nip', $this->nip);
+            }
+
+            $participant = $participantQuery->lockForUpdate()->first();
+
+            if (!$participant) {
+                throw new Exception('Data peserta tidak valid di database.');
+            }
+
+            if ($participant->status_hadir === 'Hadir') {
+                throw new Exception('Anda sudah melakukan absensi dan mengklaim kupon sebelumnya!');
+            }
+
             $availableCoupon = Coupon::whereNull('participant_id')
                 ->lockForUpdate()
                 ->first();
@@ -162,19 +178,18 @@ class PresencePage extends Component
             if (!$availableCoupon) {
                 throw new Exception('Mohon maaf, kupon undian telah habis!');
             }
-            $participant = Participant::create([
-                'nama'         => $this->nama,
-                'unit_kerja' => $this->unit_kerja,
-                'foto'         => basename($uploadedPath),
-                'status_hadir' => 'Hadir',
-                'latitude'     => $this->userLat,
-                'longitude'    => $this->userLng,
+
+            $participant->update([
+                'foto_kehadiran' => basename($uploadedPath),
+                'status_hadir'   => 'Hadir',
+                'latitude'       => $this->userLat,
+                'longitude'      => $this->userLng,
             ]);
+
             $availableCoupon->update([
                 'participant_id' => $participant->id
             ]);
 
-            // Simpan ID sementara untuk sesi sukses
             session(['temp_participant_id' => $participant->id]);
 
             return $availableCoupon->kode_kupon;
@@ -183,12 +198,9 @@ class PresencePage extends Component
 
     private function handleSuccess($couponCode)
     {
-        // Bersihkan limiter
         RateLimiter::clear('claim-coupon:' . request()->ip());
-
         session()->flash('success', 'Berhasil! Kode Kupon Anda: ' . $couponCode);
 
-        // Pindahkan ID dari temp ke session utama (Login otomatis)
         if (session('temp_participant_id')) {
             session(['current_participant_id' => session('temp_participant_id')]);
             session()->forget('temp_participant_id');
@@ -199,7 +211,6 @@ class PresencePage extends Component
 
     private function handleFailure(Exception $e, $uploadedPath)
     {
-        // Hapus foto jika gagal database (Rollback manual file)
         if ($uploadedPath && Storage::disk('public')->exists($uploadedPath)) {
             Storage::disk('public')->delete($uploadedPath);
         }
@@ -222,22 +233,29 @@ class PresencePage extends Component
             $this->addError('system', "Mohon tunggu $seconds detik sebelum mencoba lagi.");
             return true;
         }
-        RateLimiter::hit($key, 10); // Penalty 10 detik
+        RateLimiter::hit($key, 10);
         return false;
     }
 
     private function calculateDistance($latUser, $lngUser)
     {
-        // Rumus Haversine
-        $p = 0.017453292519943295;
-        $a = 0.5 - cos(($latUser - self::CENTER_LAT) * $p) / 2 +
-            cos(self::CENTER_LAT * $p) * cos($latUser * $p) * (1 - cos(($lngUser - self::CENTER_LNG) * $p)) / 2;
+        $centerLat = (float) $this->getConfig('center_lat', -7.3817108);
+        $centerLng = (float) $this->getConfig('center_lng', 108.6547367);
 
-        return 12742 * asin(sqrt($a)) * 1000; // Hasil dalam meter
+        $p = 0.017453292519943295;
+        $a = 0.5 - cos(($latUser - $centerLat) * $p) / 2 +
+            cos($centerLat * $p) * cos($latUser * $p) * (1 - cos(($lngUser - $centerLng) * $p)) / 2;
+
+        return 12742 * asin(sqrt($a)) * 1000;
     }
 
     public function render()
     {
-        return view('livewire.peserta.presence-page');
+        $pesertaTerdaftar = Participant::whereNotNull('face_descriptor')
+            ->get(['nama', 'nip', 'unit_kerja', 'face_descriptor']);
+
+        return view('livewire.peserta.presence-page', [
+            'pesertaTerdaftar' => $pesertaTerdaftar
+        ]);
     }
 }

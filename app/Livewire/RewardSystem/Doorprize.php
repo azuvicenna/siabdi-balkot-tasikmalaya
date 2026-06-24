@@ -51,39 +51,44 @@ class Doorprize extends Component
     public function pickWinner()
     {
         return DB::transaction(function () {
-            // 1. AMBIL DAFTAR ID SAJA (lebih ringan dari get() full object)
+            // 1. AMBIL DAFTAR ID SAJA (lebih ringan)
             $candidateIds = Participant::query()
                 ->where('sudah_menang', false)
                 ->where('status_hadir', 'Hadir')
                 ->whereHas('coupons', function ($q) {
                     $q->where('status_kupon', 'Aktif');
                 })
-                ->pluck('id'); // <--- Select id doang
+                ->pluck('id');
 
             if ($candidateIds->isEmpty()) {
                 return null;
             }
 
-            // 2. KOCOK ID-NYA (Sama-sama random, tapi enteng buat RAM)
-            // Array integer [1, 55, 302, ...] diacak
+            // 2. KOCOK ID
             $randomId = $candidateIds->shuffle()->first();
 
             // 3. AMBIL DATA PEMENANG & LOCK
             $calon = Participant::where('id', $randomId)
+                ->with(['coupons' => function ($q) {
+                    $q->where('status_kupon', 'Aktif');
+                }])
                 ->lockForUpdate()
                 ->first();
 
-            // Memastikan kandidat masih valid saat detik ini juga
             if (!$calon || $calon->sudah_menang || $calon->status_hadir !== 'Hadir') {
                 return null;
             }
+
+            $pathFoto = $calon->foto_kehadiran
+                ? asset('storage/selfies/' . $calon->foto_kehadiran)
+                : 'https://ui-avatars.com/api/?name=' . urlencode($calon->nama) . '&background=random&size=512';
 
             return [
                 'id' => $calon->id,
                 'kode_kupon' => $calon->coupons->first()->kode_kupon ?? '-',
                 'nama' => $calon->nama,
                 'unit_kerja' => $calon->unit_kerja,
-                'foto' => $calon->foto_url,
+                'foto' => $pathFoto,
             ];
         });
     }
@@ -91,11 +96,9 @@ class Doorprize extends Component
     public function saveWinner($participantId)
     {
         $peserta = Participant::find($participantId);
-
         $kupon = $peserta ? $peserta->coupons()->where('status_kupon', 'Aktif')->first() : null;
 
         if ($peserta) {
-
             Winner::create([
                 'participant_id' => $peserta->id,
                 'reward_id'      => null,

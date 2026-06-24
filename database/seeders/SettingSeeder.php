@@ -15,12 +15,21 @@ class SettingSeeder extends Seeder
     {
         Setting::create([
             'key' => 'status_absensi',
-            'value' => 'tutup'
+            'value' => 'buka'
         ]);
 
         Setting::create([
             'key' => 'limit_voucher',
             'value' => '1'
+        ]);
+        Setting::create([
+            'key' => 'geofencing',
+            'value' => json_encode([
+                'center_lat'      => -7.3817108,
+                'center_lng'      => 108.6547367,
+                'radius_meters'   => 1000000,
+                'max_upload_size' => 10240
+            ])
         ]);
     }
 }
