@@ -189,6 +189,9 @@
                                     'text-red-600': liveStatus === 'not_detected' || liveStatus === 'searching'
                                 }">
                                 <p class="text-sm" x-text="liveMessage"></p>
+                                <template x-if="liveStatus === 'success' && liveDistanceInfo !== ''">
+                                    <p class="text-xs text-gray-500 font-mono mt-1" x-text="liveDistanceInfo"></p>
+                                </template>
                             </div>
 
                             <button @click="capturePhoto()" :disabled="liveStatus !== 'success' || isCameraCapturing"
@@ -359,6 +362,7 @@
 
             liveStatus: 'loading',
             liveMessage: '',
+            liveDistanceInfo: '',
             detectionInterval: null,
 
             showFaceModal: false,
@@ -367,6 +371,7 @@
             faceModalMessage: '',
 
             faceMatcher: null,
+            lastDetectedLabel: null,
             participantsData: pesertaDariBackend || [],
 
             async initLocation() {
@@ -554,6 +559,7 @@
                             if (!this.faceMatcher) {
                                 this.liveStatus = 'success';
                                 this.liveMessage = 'Wajah terdeteksi. Klik ambil foto.';
+                                this.liveDistanceInfo = '';
                                 return;
                             }
 
@@ -565,17 +571,26 @@
 
                                 this.liveStatus = 'success';
                                 this.liveMessage = `Dikenali: ${nama}. Klik ambil foto.`;
+                                this.liveDistanceInfo = `Jarak Euclidean: ${bestMatch.distance.toFixed(4)} / 0.55`;
 
-                                @this.set('nama', nama);
-                                @this.set('unit_kerja', instansi);
-                                @this.set('nip', nip);
+                                // BUGFIX: Jangan spam request ke server setiap 800ms untuk orang yang sama
+                                if (this.lastDetectedLabel !== bestMatch.label) {
+                                    this.lastDetectedLabel = bestMatch.label;
+                                    @this.set('nama', nama);
+                                    @this.set('unit_kerja', instansi);
+                                    @this.set('nip', nip);
+                                }
                             } else {
                                 this.liveStatus = 'not_detected';
                                 this.liveMessage = 'Wajah tidak dikenali di sistem.';
+                                this.liveDistanceInfo = `Jarak Euclidean: ${bestMatch.distance.toFixed(4)} / 0.55`;
+                                this.lastDetectedLabel = null;
                             }
                         } else {
                             this.liveStatus = 'not_detected';
                             this.liveMessage = 'Posisikan wajah ke area terang';
+                            this.liveDistanceInfo = '';
+                            this.lastDetectedLabel = null;
                         }
                     } catch (e) {
                         this.liveStatus = 'not_detected';

@@ -283,14 +283,20 @@
 
     @script
     <script>
-        document.addEventListener('livewire:initialized', () => {
-            Livewire.on('close-modal', (event) => {
-                const modalEl = document.getElementById('modal-setting');
-                if (modalEl) {
-                    const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
-                    modalInstance.hide();
-                }
-            });
+        $wire.on('close-modal', () => {
+            const modalEl = document.getElementById('modal-setting');
+            if (modalEl) {
+                const modalInstance = bootstrap.Modal.getInstance(modalEl);
+                modalInstance?.hide();
+            }
+
+            // Fallback pembersihan backdrop Bootstrap
+            setTimeout(() => {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }, 150);
         });
     </script>
     @endscript

@@ -16,7 +16,7 @@
             <!-- Flash Message -->
             <div>
                 @if (session()->has('message'))
-                    <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+                    <div wire:key="flash-message-{{ time() }}" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
                         <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check"
                             width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
                             fill="none" stroke-linecap="round" stroke-linejoin="round">
@@ -493,19 +493,30 @@
 
 @script
     <script>
-        document.addEventListener('livewire:initialized', () => {
-            Livewire.on('close-modal', (event) => {
-                const modalCreate = document.getElementById('modal-create-participant');
-                const modalDelete = document.getElementById('modal-danger');
+        const cleanupBackdrop = () => {
+            setTimeout(() => {
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }, 150);
+        };
 
-                if (modalCreate) bootstrap.Modal.getOrCreateInstance(modalCreate).hide();
-                if (modalDelete) bootstrap.Modal.getOrCreateInstance(modalDelete).hide();
-            });
+        $wire.on('close-modal', () => {
+            const modalCreate = document.getElementById('modal-create-participant');
+            const modalDelete = document.getElementById('modal-danger');
 
-            Livewire.on('close-modal-import', () => {
-                const modalImport = document.getElementById('modal-import');
-                if (modalImport) bootstrap.Modal.getOrCreateInstance(modalImport).hide();
-            });
+            if (modalCreate) bootstrap.Modal.getInstance(modalCreate)?.hide();
+            if (modalDelete) bootstrap.Modal.getInstance(modalDelete)?.hide();
+            
+            cleanupBackdrop();
+        });
+
+        $wire.on('close-modal-import', () => {
+            const modalImport = document.getElementById('modal-import');
+            if (modalImport) bootstrap.Modal.getInstance(modalImport)?.hide();
+            
+            cleanupBackdrop();
         });
 
         Alpine.data('adminFaceExtractor', () => ({

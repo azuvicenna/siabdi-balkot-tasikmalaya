@@ -239,8 +239,8 @@ class PresencePage extends Component
 
     private function calculateDistance($latUser, $lngUser)
     {
-        $centerLat = (float) $this->getConfig('center_lat', -7.3817108);
-        $centerLng = (float) $this->getConfig('center_lng', 108.6547367);
+        $centerLat = (float) $this->getConfig('center_lat', -7.3164413671413895);
+        $centerLng = (float) $this->getConfig('center_lng', 108.19693890463489);
 
         $p = 0.017453292519943295;
         $a = 0.5 - cos(($latUser - $centerLat) * $p) / 2 +

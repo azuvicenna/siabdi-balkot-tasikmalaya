@@ -11,8 +11,9 @@
 
     <div class="page-body">
         <div class="container-xl">
-            <div> @if (session()->has('message'))
-                <div class="alert alert-success alert-dismissible fade show mb-3" role="alert">
+            <div>
+            @if (session()->has('message'))
+                <div wire:key="flash-message-{{ time() }}" class="alert alert-success alert-dismissible fade show mb-3" role="alert">
                     <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-check" width="24"
                         height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none"
                         stroke-linecap="round" stroke-linejoin="round">
@@ -24,8 +25,8 @@
 
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-                @endif
-            </div>
+            @endif
+        </div>
 
             <div class="row row-cards">
                 <div class="col-md-12">
@@ -495,25 +496,31 @@
 
 @script
 <script>
-    document.addEventListener('livewire:initialized', () => {
-        Livewire.on('close-modal', (event) => {
-            // Daftar ID semua modal yang ada di halaman ini
-            const modalIds = [
-                'modal-create-category', // Modal Tambah Kategori
-                'modal-create-reward',   // Modal Tambah/Edit Hadiah
-                'modal-danger'           // Modal Hapus
-            ];
+    $wire.on('close-modal', () => {
+        // Daftar ID semua modal yang ada di halaman ini
+        const modalIds = [
+            'modal-create-category', // Modal Tambah Kategori
+            'modal-create-reward',   // Modal Tambah/Edit Hadiah
+            'modal-danger'           // Modal Hapus
+        ];
 
-            // Loop untuk menutup modal yang sedang aktif
-            modalIds.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) {
-                    // Gunakan getOrCreateInstance agar lebih stabil
-                    const modalInstance = bootstrap.Modal.getOrCreateInstance(el);
-                    modalInstance.hide();
-                }
-            });
+        // Loop untuk menutup modal yang sedang aktif
+        modalIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                // Gunakan getInstance agar tidak error jika modal belum terinisiasi dengan benar
+                const modalInstance = bootstrap.Modal.getInstance(el);
+                modalInstance?.hide();
+            }
         });
+
+        // Fallback pembersihan backdrop Bootstrap
+        setTimeout(() => {
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
+        }, 150);
     });
 </script>
 @endscript

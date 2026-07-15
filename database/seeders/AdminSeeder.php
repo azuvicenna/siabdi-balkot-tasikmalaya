@@ -17,9 +17,9 @@ class AdminSeeder extends Seeder
         User::truncate();
 
         User::create([
-            'nama' => 'Super Admin Dinkes',
-            'username' => 'dinkes',
-            'password' => Hash::make('dinkes'),
+            'nama' => 'Panitia Acara',
+            'username' => 'panitia',
+            'password' => Hash::make('panitia'),
         ]);
     }
 }

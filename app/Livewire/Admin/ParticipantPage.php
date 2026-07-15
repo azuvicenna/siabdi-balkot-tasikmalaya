@@ -76,7 +76,10 @@ class ParticipantPage extends Component
      */
     public function showDetail($id)
     {
-        $this->selectedParticipant = Participant::find($id);
+        // Hindari meload 'face_descriptor' karena ukurannya sangat besar dan membuat Livewire lambat (payload bengkak)
+        $this->selectedParticipant = Participant::select(
+            'id', 'nama', 'nip', 'unit_kerja', 'foto', 'foto_kehadiran', 'latitude', 'longitude'
+        )->find($id);
     }
 
     public function setDeleteId($id)
