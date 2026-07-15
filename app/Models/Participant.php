@@ -26,7 +26,7 @@ class Participant extends Model
     public function getFotoMasterUrlAttribute()
     {
         if ($this->foto) {
-            return Storage::disk('public')->url('photos/' . $this->foto);
+            return asset('storage/photos/' . $this->foto);
         }
         return 'https://ui-avatars.com/api/?name=' . urlencode($this->nama) . '&background=random';
     }
@@ -34,8 +34,19 @@ class Participant extends Model
     public function getFotoSelfieUrlAttribute()
     {
         if ($this->foto_kehadiran) {
-            return Storage::disk('public')->url('selfies/' . $this->foto_kehadiran);
+            return asset('storage/selfies/' . $this->foto_kehadiran);
         }
         return null; 
+    }
+
+    public function getFotoUrlAttribute()
+    {
+        if ($this->foto_kehadiran) {
+            return asset('storage/selfies/' . $this->foto_kehadiran);
+        }
+        if ($this->foto) {
+            return asset('storage/photos/' . $this->foto);
+        }
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->nama) . '&background=random';
     }
 }
