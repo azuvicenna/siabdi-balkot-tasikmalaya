@@ -230,9 +230,7 @@
                             <!-- Face API File Upload Area with Improved UX -->
                             <div class="col-lg-12">
                                 <div class="mb-3">
-                                    <label class="form-label">Upload Foto Wajah <span
-                                            class="text-muted font-weight-normal">(Opsional - Untuk Face
-                                            Recognition)</span></label>
+                                    <label class="form-label required">Upload Foto Wajah</label>
 
                                     <!-- State: Sedang Load Model AI -->
                                     <template x-if="isLoadingModel && !isModelLoaded">
@@ -322,34 +320,81 @@
 
         <!-- MODAL: Import -->
         <div class="modal modal-blur fade" id="modal-import" tabindex="-1" role="dialog" aria-hidden="true"
-            wire:ignore.self>
+            wire:ignore.self x-data="importExcelPhotos">
             <div class="modal-dialog modal-dialog-centered" role="document">
-                <form class="modal-content" wire:submit="import">
+                <form class="modal-content" @submit.prevent="startImport">
                     <div class="modal-header">
-                        <h5 class="modal-title">Import Data Peserta</h5>
+                        <h5 class="modal-title">Import Data Peserta & Foto</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"
-                            aria-label="Close"></button>
+                            aria-label="Close" :disabled="isLoading"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="mb-3">
-                            <label class="form-label required">Pilih File Excel</label>
-                            <input type="file" class="form-control @error('file_import') is-invalid @enderror"
-                                wire:model="file_import" accept=".xlsx, .xls, .csv">
-                            @error('file_import')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                            <div wire:loading wire:target="file_import" class="text-primary mt-2 small">
-                                Sedang mengunggah file ke server... Tunggu sebentar.
+                        <!-- Initial Upload UI -->
+                        <div x-show="!showErrorUI">
+                            <div class="mb-3">
+                                <label class="form-label required">Pilih File Excel</label>
+                                <input type="file" class="form-control" x-ref="excelInput" accept=".xlsx, .xls, .csv" :disabled="isLoading">
+                                <small class="form-hint mt-2">
+                                    Header Excel wajib: <strong>NIP, NAMA, UNIT KERJA, FOTO</strong>.
+                                </small>
                             </div>
-                            <small class="form-hint mt-2">
-                                Header Excel wajib: <strong>NIP, NAMA, UNIT KERJA</strong>.
-                            </small>
+                            <div class="mb-3">
+                                <label class="form-label required">Pilih Semua Foto (Multiple)</label>
+                                <input type="file" class="form-control" x-ref="photosInput" wire:model="import_photos" multiple accept="image/*" :disabled="isLoading">
+                                <small class="form-hint mt-2 text-primary">
+                                    Pilih sekaligus banyak foto. Nama file foto harus persis dengan yang diketik di kolom FOTO pada Excel.
+                                </small>
+                                @error('import_photos.*')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                                @error('import_data_json')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+
+                        <!-- Error Resolution UI -->
+                        <div x-show="showErrorUI" style="display: none;">
+                            <div class="alert alert-danger">
+                                Ditemukan <strong x-text="errorList.length"></strong> peserta dengan foto bermasalah (foto tidak ada, terlalu besar, atau wajah tidak terdeteksi).
+                                <br>Silakan unggah foto baru untuk masing-masing peserta berikut.
+                            </div>
+                            <div style="max-height: 350px; overflow-y: auto; overflow-x: hidden;" class="pe-2">
+                                <template x-for="(err, index) in errorList" :key="index">
+                                    <div class="card mb-2 border-danger shadow-sm">
+                                        <div class="card-body p-2">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div class="fw-bold text-truncate" style="max-width: 60%;" x-text="err.nama"></div>
+                                                <div class="badge bg-danger-lt" x-text="err.error_message"></div>
+                                            </div>
+                                            <div class="text-muted small mb-2" x-text="err.nip ? 'NIP: ' + err.nip : 'NIP Kosong'"></div>
+                                            <input type="file" class="form-control form-control-sm" accept="image/*" @change="resolveError(index, $event.target)" :disabled="isLoading">
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                        
+                        <!-- Progress & Status Loading -->
+                        <div x-show="isLoading" class="mt-4" style="display: none;">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="small font-weight-bold" x-text="statusText"></span>
+                                <span class="small font-weight-bold" x-text="progressPercent + '%'"></span>
+                            </div>
+                            <div class="progress progress-sm">
+                                <div class="progress-bar progress-bar-indeterminate bg-primary" :class="{'progress-bar-indeterminate': progressPercent < 10}" :style="'width: ' + progressPercent + '%'"></div>
+                            </div>
+                        </div>
+                        <div wire:loading wire:target="processImportData" class="text-success mt-2 small fw-bold">
+                            Sedang menyimpan data ke database...
                         </div>
                     </div>
                     <div class="modal-footer border-0">
-                        <button type="submit" class="btn btn-success ms-auto" wire:loading.attr="disabled">
-                            <span wire:loading.remove wire:target="import">Mulai Import</span>
-                            <span wire:loading wire:target="import">
+                        <button type="button" class="btn btn-secondary me-auto" x-show="showErrorUI" @click="resetErrorState()" :disabled="isLoading">Batal & Ulangi</button>
+                        
+                        <button type="submit" class="btn btn-success ms-auto" :disabled="isLoading || showErrorUI" wire:loading.attr="disabled" wire:target="import_photos, processImportData">
+                            <span x-show="!isLoading">Mulai Import</span>
+                            <span x-show="isLoading">
                                 <span class="spinner-border spinner-border-sm me-2"></span>
                                 Memproses...
                             </span>
@@ -591,7 +636,7 @@
 
                         if (detection) {
                             const descriptorArray = Array.from(detection.descriptor);
-                            @this.set('face_descriptor', JSON.stringify(descriptorArray));
+                            this.$wire.set('face_descriptor', JSON.stringify(descriptorArray));
 
                             this.statusType = 'success';
                             this.statusMessage = 'Wajah berhasil dideteksi dan diekstrak! ✅';
@@ -599,7 +644,7 @@
                             this.statusType = 'error';
                             this.statusMessage =
                                 'GAGAL: Wajah tidak terdeteksi dengan jelas di foto ini! ❌';
-                            @this.set('face_descriptor', null);
+                            this.$wire.set('face_descriptor', null);
                         }
                     } catch (err) {
                         this.statusType = 'error';
@@ -608,6 +653,248 @@
                         this.isProcessingFace = false;
                     }
                 };
+            }
+        }));
+
+        Alpine.data('importExcelPhotos', () => ({
+            isModelLoaded: false,
+            isLoading: false,
+            statusText: '',
+            progressPercent: 0,
+            maxSize: 10240 * 1024,
+            
+            errorList: [],
+            validList: [],
+            showErrorUI: false,
+            
+            init() {
+                if (this.$wire && this.$wire.maxUploadSize) {
+                    this.maxSize = this.$wire.maxUploadSize * 1024;
+                }
+            },
+
+            async initFaceApi() {
+                if (this.isModelLoaded || typeof faceapi === 'undefined') return;
+                const MODEL_URL = '/models';
+                try {
+                    await Promise.all([
+                        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+                        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+                    ]);
+                    this.isModelLoaded = true;
+                } catch (error) {
+                    console.error("Gagal memuat Face API Model", error);
+                }
+            },
+            
+            resetErrorState() {
+                this.errorList = [];
+                this.validList = [];
+                this.showErrorUI = false;
+                this.isLoading = false;
+            },
+
+            async startImport() {
+                if (this.showErrorUI) return;
+
+                const excelFile = this.$refs.excelInput.files[0];
+                const photoFiles = this.$refs.photosInput.files;
+
+                if (!excelFile) {
+                    alert('Pilih file Excel terlebih dahulu!');
+                    return;
+                }
+
+                if (!this.isModelLoaded && typeof faceapi !== 'undefined') {
+                    this.statusText = 'Memuat model Face API...';
+                    this.isLoading = true;
+                    await this.initFaceApi();
+                }
+
+                this.isLoading = true;
+                this.statusText = 'Membaca file Excel...';
+                this.progressPercent = 5;
+                this.errorList = [];
+                this.validList = [];
+
+                try {
+                    const data = await this.readExcel(excelFile);
+                    if (!data || data.length === 0) throw new Error('Data Excel kosong atau format salah.');
+                    
+                    const photosMap = {};
+                    for (let i = 0; i < photoFiles.length; i++) {
+                        photosMap[photoFiles[i].name] = photoFiles[i];
+                    }
+                    
+                    let total = data.length;
+                    
+                    for (let i = 0; i < total; i++) {
+                        const row = data[i];
+                        const nip = this.getCol(row, ['nip']);
+                        const nama = this.getCol(row, ['nama']);
+                        const unitKerja = this.getCol(row, ['unit kerja', 'unit_kerja']);
+                        const fotoName = this.getCol(row, ['foto']);
+                        
+                        if (!nip) continue;
+                        
+                        let participantData = {
+                            nip: String(nip),
+                            nama: nama,
+                            unit_kerja: unitKerja,
+                            foto_file: null,
+                            descriptor: null,
+                            base64_foto: null
+                        };
+
+                        if (!fotoName || !photosMap[fotoName]) {
+                            participantData.error_message = 'Foto tidak ditemukan di Excel / belum dipilih';
+                            this.errorList.push(participantData);
+                            continue;
+                        }
+
+                        const photoFile = photosMap[fotoName];
+                        if (photoFile.size > this.maxSize) {
+                            participantData.error_message = `Ukuran melebihi maksimal (${Math.round(this.maxSize/1024)} KB)`;
+                            this.errorList.push(participantData);
+                            continue;
+                        }
+                        
+                        this.statusText = `Memproses wajah untuk ${nama} (${i+1}/${total})...`;
+                        this.progressPercent = 10 + Math.round((i / total) * 80);
+                        
+                        const descriptor = await this.getFaceDescriptor(photoFile);
+                        if (!descriptor) {
+                            participantData.error_message = 'Wajah tidak terdeteksi dengan jelas';
+                            this.errorList.push(participantData);
+                            continue;
+                        }
+                        
+                        participantData.foto_file = fotoName;
+                        participantData.descriptor = descriptor;
+                        this.validList.push(participantData);
+                    }
+                    
+                    if (this.errorList.length > 0) {
+                        this.isLoading = false;
+                        this.showErrorUI = true;
+                    } else {
+                        this.submitToServer();
+                    }
+
+                } catch (e) {
+                    alert(e.message);
+                    this.isLoading = false;
+                    this.progressPercent = 0;
+                }
+            },
+            
+            async resolveError(index, fileInput) {
+                const file = fileInput.files[0];
+                if (!file) return;
+
+                this.isLoading = true;
+                this.statusText = 'Memvalidasi foto baru...';
+                
+                if (file.size > this.maxSize) {
+                    alert(`Ukuran foto melebihi maksimal (${Math.round(this.maxSize/1024)} KB)`);
+                    fileInput.value = '';
+                    this.isLoading = false;
+                    return;
+                }
+
+                const descriptor = await this.getFaceDescriptor(file);
+                if (!descriptor) {
+                    alert('Wajah tidak terdeteksi pada foto ini. Silakan coba foto lain.');
+                    fileInput.value = '';
+                    this.isLoading = false;
+                    return;
+                }
+
+                const base64 = await this.fileToBase64(file);
+                let resolvedParticipant = this.errorList[index];
+                resolvedParticipant.descriptor = descriptor;
+                resolvedParticipant.base64_foto = base64;
+                resolvedParticipant.foto_file = file.name;
+                
+                this.validList.push(resolvedParticipant);
+                this.errorList.splice(index, 1);
+                
+                this.isLoading = false;
+
+                if (this.errorList.length === 0) {
+                    this.showErrorUI = false;
+                    this.submitToServer();
+                }
+            },
+
+            submitToServer() {
+                this.isLoading = true;
+                this.statusText = 'Mengirim data ke server... Tunggu sebentar.';
+                this.progressPercent = 95;
+                
+                this.$wire.set('import_data_json', JSON.stringify(this.validList));
+                this.$wire.call('processImportData');
+                
+                window.addEventListener('close-modal-import', () => {
+                    this.resetErrorState();
+                    this.$refs.excelInput.value = '';
+                    this.$refs.photosInput.value = '';
+                }, {once: true});
+            },
+            
+            fileToBase64(file) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.readAsDataURL(file);
+                    reader.onload = () => resolve(reader.result);
+                    reader.onerror = error => reject(error);
+                });
+            },
+            
+            getCol(row, possibleNames) {
+                const keys = Object.keys(row);
+                for (let k of keys) {
+                    if (possibleNames.includes(String(k).toLowerCase().trim())) return row[k];
+                }
+                return null;
+            },
+            
+            readExcel(file) {
+                return new Promise((resolve, reject) => {
+                    if (typeof XLSX === 'undefined') {
+                        reject(new Error("Library XLSX belum dimuat. Periksa koneksi internet."));
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const workbook = XLSX.read(e.target.result, {type: 'binary'});
+                            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                            resolve(XLSX.utils.sheet_to_json(worksheet, { defval: "" }));
+                        } catch(err) {
+                            reject(err);
+                        }
+                    };
+                    reader.onerror = (err) => reject(err);
+                    reader.readAsBinaryString(file);
+                });
+            },
+            
+            getFaceDescriptor(file) {
+                return new Promise((resolve) => {
+                    const img = document.createElement('img');
+                    img.src = URL.createObjectURL(file);
+                    img.onload = async () => {
+                        try {
+                            const detection = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceDescriptor();
+                            resolve(detection ? Array.from(detection.descriptor) : null);
+                        } catch(e) {
+                            resolve(null);
+                        }
+                    };
+                    img.onerror = () => resolve(null);
+                });
             }
         }));
     </script>

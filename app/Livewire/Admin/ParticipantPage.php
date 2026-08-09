@@ -2,8 +2,9 @@
 
 namespace App\Livewire\Admin;
 
-use App\Imports\ParticipantImport;
 use App\Models\Participant;
+use App\Models\Setting;
+use Carbon\Carbon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Rule;
 use Livewire\Attributes\Title;
@@ -23,7 +24,11 @@ class ParticipantPage extends Component
     public $search = '';
     public $deleteId = null;
     public $selectedParticipant = null;
-    public $file_import;
+
+    // Import Properties
+    public $import_photos = [];
+    public $import_data_json = '[]';
+    public $maxUploadSize = 10240;
 
     // Form Properties
     #[Rule('required|min:3', as: 'Nama Lengkap')]
@@ -35,9 +40,19 @@ class ParticipantPage extends Component
     #[Rule('required|min:3', as: 'Unit Kerja')]
     public $unit_kerja = '';
 
-    #[Rule('nullable|image|max:10240', as: 'Foto Peserta')]
+    #[Rule('required|image|max:10240', as: 'Foto Peserta')]
     public $foto;
+
     public $face_descriptor;
+
+    public function mount()
+    {
+        $geofencing = Setting::where('key', 'geofencing')->first();
+        if ($geofencing) {
+            $data = json_decode($geofencing->value, true);
+            $this->maxUploadSize = $data['max_upload_size'] ?? 10240;
+        }
+    }
 
     public function updatingSearch()
     {
@@ -53,6 +68,11 @@ class ParticipantPage extends Component
     public function store()
     {
         $this->validate();
+        
+        if (empty($this->face_descriptor)) {
+            $this->addError('face_descriptor', 'Wajah tidak terdeteksi pada foto. Silakan gunakan foto yang jelas.');
+            return;
+        }
 
         $fotoMasterPath = null;
         if ($this->foto) {
@@ -102,22 +122,77 @@ class ParticipantPage extends Component
         }
     }
 
-    public function import()
+    public function processImportData()
     {
         $this->validate([
-            'file_import' => 'required|mimes:xlsx,xls,csv|max:10240',
+            'import_data_json' => 'required',
+            'import_photos.*'  => 'image|max:' . $this->maxUploadSize,
         ]);
 
-        set_time_limit(300);
-        ini_set('memory_limit', '512M');
+        $data = json_decode($this->import_data_json, true);
+        if (!is_array($data) || empty($data)) {
+            session()->flash('error', 'Data excel kosong atau tidak valid.');
+            return;
+        }
+
+        $now = Carbon::now();
+        $dataToInsert = [];
+
+        // Map uploaded files by their original filename
+        $uploadedFiles = [];
+        foreach ($this->import_photos as $photo) {
+            $uploadedFiles[$photo->getClientOriginalName()] = $photo;
+        }
 
         try {
-            Excel::import(new ParticipantImport, $this->file_import->getRealPath());
+            foreach ($data as $row) {
+                if (empty($row['nip'])) continue;
 
-            $this->reset('file_import');
+                $fotoMasterPath = null;
+                $fileName = $row['foto_file'] ?? null;
+                $base64Foto = $row['base64_foto'] ?? null;
+                
+                if ($base64Foto) {
+                    // Decode base64 and save
+                    $imageParts = explode(";base64,", $base64Foto);
+                    if (count($imageParts) == 2) {
+                        $imageTypeAux = explode("image/", $imageParts[0]);
+                        $imageExtension = $imageTypeAux[1] ?? 'jpg';
+                        $image_base64 = base64_decode($imageParts[1]);
+                        $newFileName = uniqid() . '.' . $imageExtension;
+                        \Illuminate\Support\Facades\Storage::disk('public')->put('photos/' . $newFileName, $image_base64);
+                        $fotoMasterPath = $newFileName;
+                    }
+                } elseif ($fileName && isset($uploadedFiles[$fileName])) {
+                    $file = $uploadedFiles[$fileName];
+                    // Save file
+                    $path = $file->store('photos', 'public');
+                    $fotoMasterPath = basename($path);
+                }
+
+                $dataToInsert[] = [
+                    'nip'              => $row['nip'],
+                    'nama'             => $row['nama'],
+                    'unit_kerja'       => $row['unit_kerja'],
+                    'foto'             => $fotoMasterPath,
+                    'face_descriptor'  => isset($row['descriptor']) ? json_encode($row['descriptor']) : null,
+                    'created_at'       => $now,
+                    'updated_at'       => $now,
+                ];
+            }
+
+            if (!empty($dataToInsert)) {
+                Participant::upsert(
+                    $dataToInsert,
+                    ['nip'],
+                    ['nama', 'unit_kerja', 'foto', 'face_descriptor', 'updated_at']
+                );
+            }
+
+            $this->reset(['import_photos', 'import_data_json']);
             $this->dispatch('close-modal-import');
 
-            session()->flash('message', 'Sukses! data berhasil diimport.');
+            session()->flash('message', 'Sukses! ' . count($dataToInsert) . ' data peserta berhasil diimport beserta fotonya.');
         } catch (\Exception $e) {
             session()->flash('error', 'Gagal: ' . $e->getMessage());
         }

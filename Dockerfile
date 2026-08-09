@@ -46,6 +46,11 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 COPY . /var/www
 
 ##############################################
+# Create required directories before composer
+##############################################
+RUN mkdir -p /var/www/bootstrap/cache /var/www/storage/logs /var/www/storage/framework/cache /var/www/storage/framework/sessions /var/www/storage/framework/views
+
+##############################################
 # Composer install (Production)
 ##############################################
 RUN composer install --no-dev --optimize-autoloader --no-interaction
