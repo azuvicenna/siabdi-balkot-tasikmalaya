@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Models\Reward;
 use App\Models\RewardCategory;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;

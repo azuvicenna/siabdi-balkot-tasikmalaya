@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Admin;
 
-use App\Jobs\GenerateCouponsJob;
 use App\Models\Coupon;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;

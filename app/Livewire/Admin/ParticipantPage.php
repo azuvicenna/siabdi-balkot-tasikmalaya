@@ -11,7 +11,6 @@ use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use Livewire\WithPagination;
-use Maatwebsite\Excel\Facades\Excel;
 
 class ParticipantPage extends Component
 {
@@ -63,6 +62,11 @@ class ParticipantPage extends Component
     {
         $this->reset(['nama', 'nip', 'unit_kerja', 'foto', 'face_descriptor', 'selectedParticipant']);
         $this->resetValidation();
+    }
+
+    public function resetImportData()
+    {
+        $this->reset(['import_photos', 'import_data_json']);
     }
 
     public function store()
@@ -138,6 +142,10 @@ class ParticipantPage extends Component
         $now = Carbon::now();
         $dataToInsert = [];
 
+        // Ambil NIP yang sudah ada di database untuk mencegah duplikasi
+        $incomingNips = array_filter(array_column($data, 'nip'));
+        $existingNips = Participant::whereIn('nip', $incomingNips)->pluck('nip')->toArray();
+
         // Map uploaded files by their original filename
         $uploadedFiles = [];
         foreach ($this->import_photos as $photo) {
@@ -147,6 +155,7 @@ class ParticipantPage extends Component
         try {
             foreach ($data as $row) {
                 if (empty($row['nip'])) continue;
+                if (in_array($row['nip'], $existingNips)) continue; // Abaikan jika NIP sudah ada
 
                 $fotoMasterPath = null;
                 $fileName = $row['foto_file'] ?? null;
@@ -182,17 +191,13 @@ class ParticipantPage extends Component
             }
 
             if (!empty($dataToInsert)) {
-                Participant::upsert(
-                    $dataToInsert,
-                    ['nip'],
-                    ['nama', 'unit_kerja', 'foto', 'face_descriptor', 'updated_at']
-                );
+                Participant::insert($dataToInsert);
             }
 
             $this->reset(['import_photos', 'import_data_json']);
             $this->dispatch('close-modal-import');
 
-            session()->flash('message', 'Sukses! ' . count($dataToInsert) . ' data peserta berhasil diimport beserta fotonya.');
+            session()->flash('message', 'Sukses! ' . count($dataToInsert) . ' data peserta baru berhasil diimport beserta fotonya.');
         } catch (\Exception $e) {
             session()->flash('error', 'Gagal: ' . $e->getMessage());
         }

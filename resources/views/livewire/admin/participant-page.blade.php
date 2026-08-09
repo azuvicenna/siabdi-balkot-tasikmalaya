@@ -182,7 +182,7 @@
 
         <!-- MODAL: Tambah Peserta (Terintegrasi Face API) -->
         <div class="modal modal-blur fade" id="modal-create-participant" tabindex="-1" role="dialog"
-            aria-hidden="true" wire:ignore.self>
+            aria-hidden="true" wire:ignore.self @hidden.bs.modal="resetState(); $wire.resetForm()">
             <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
                 <form class="modal-content" wire:submit="store">
                     <div class="modal-header">
@@ -320,7 +320,7 @@
 
         <!-- MODAL: Import -->
         <div class="modal modal-blur fade" id="modal-import" tabindex="-1" role="dialog" aria-hidden="true"
-            wire:ignore.self x-data="importExcelPhotos">
+            wire:ignore.self x-data="importExcelPhotos" @hidden.bs.modal="resetErrorState(); $refs.excelInput.value = ''; $refs.photosInput.value = '';">
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <form class="modal-content" @submit.prevent="startImport">
                     <div class="modal-header">
@@ -340,7 +340,11 @@
                             </div>
                             <div class="mb-3">
                                 <label class="form-label required">Pilih Semua Foto (Multiple)</label>
-                                <input type="file" class="form-control" x-ref="photosInput" wire:model="import_photos" multiple accept="image/*" :disabled="isLoading">
+                                <input type="file" class="form-control" id="import_photos" x-ref="photosInput" wire:model="import_photos" multiple accept="image/*" :disabled="isLoading">
+                                <div wire:loading wire:target="import_photos" class="text-primary mt-2 small fw-bold">
+                                    <span class="spinner-border spinner-border-sm me-1" role="status"></span>
+                                    Sedang mengunggah foto ke server...
+                                </div>
                                 <small class="form-hint mt-2 text-primary">
                                     Pilih sekaligus banyak foto. Nama file foto harus persis dengan yang diketik di kolom FOTO pada Excel.
                                 </small>
@@ -368,7 +372,19 @@
                                                 <div class="badge bg-danger-lt" x-text="err.error_message"></div>
                                             </div>
                                             <div class="text-muted small mb-2" x-text="err.nip ? 'NIP: ' + err.nip : 'NIP Kosong'"></div>
-                                            <input type="file" class="form-control form-control-sm" accept="image/*" @change="resolveError(index, $event.target)" :disabled="isLoading">
+                                            <div class="d-flex gap-2">
+                                                <input type="file" class="form-control form-control-sm" accept="image/*" @change="resolveError(index, $event.target)" :disabled="isLoading">
+                                                <button type="button" class="btn btn-outline-danger btn-sm btn-icon" @click="removeError(index)" :disabled="isLoading" title="Hapus Data">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-trash m-0" width="20" height="20" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                                        <path d="M4 7l16 0"></path>
+                                                        <path d="M10 11l0 6"></path>
+                                                        <path d="M14 11l0 6"></path>
+                                                        <path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2l1 -12"></path>
+                                                        <path d="M9 7v-3a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v3"></path>
+                                                    </svg>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </template>
@@ -564,12 +580,40 @@
             cleanupBackdrop();
         });
 
+        const modalImport = document.getElementById('modal-import');
+        if (modalImport) {
+            modalImport.addEventListener('hidden.bs.modal', () => {
+                // Reset Livewire properties
+                $wire.resetImportData();
+                
+                // Reset file inputs in DOM
+                const excelInput = modalImport.querySelector('input[x-ref="excelInput"]');
+                const photosInput = modalImport.querySelector('input[x-ref="photosInput"]');
+                if (excelInput) excelInput.value = '';
+                if (photosInput) photosInput.value = '';
+                
+                // Reset Alpine state
+                if (window.Alpine) {
+                    const alpineData = window.Alpine.$data(modalImport);
+                    if (alpineData && typeof alpineData.resetErrorState === 'function') {
+                        alpineData.resetErrorState();
+                    }
+                }
+            });
+        }
+
         Alpine.data('adminFaceExtractor', () => ({
             isModelLoaded: false,
             isLoadingModel: false,
             isProcessingFace: false,
             statusType: 'idle', // idle, loading, success, error
             statusMessage: '',
+            
+            resetState() {
+                this.statusType = 'idle';
+                this.statusMessage = '';
+                this.isProcessingFace = false;
+            },
 
             // Dynamic styling untuk visual feedback UI
             get bgClass() {
@@ -718,13 +762,20 @@
                 this.errorList = [];
                 this.validList = [];
 
+                // Pastikan Alpine merender perubahan DOM (loading UI) lalu biarkan browser melakukan paint
+                await new Promise(resolve => {
+                    this.$nextTick(() => {
+                        setTimeout(resolve, 100);
+                    });
+                });
+
                 try {
                     const data = await this.readExcel(excelFile);
                     if (!data || data.length === 0) throw new Error('Data Excel kosong atau format salah.');
                     
                     const photosMap = {};
                     for (let i = 0; i < photoFiles.length; i++) {
-                        photosMap[photoFiles[i].name] = photoFiles[i];
+                        photosMap[photoFiles[i].name.trim()] = photoFiles[i];
                     }
                     
                     let total = data.length;
@@ -734,7 +785,8 @@
                         const nip = this.getCol(row, ['nip']);
                         const nama = this.getCol(row, ['nama']);
                         const unitKerja = this.getCol(row, ['unit kerja', 'unit_kerja']);
-                        const fotoName = this.getCol(row, ['foto']);
+                        let fotoName = this.getCol(row, ['foto']);
+                        if (fotoName) fotoName = String(fotoName).trim();
                         
                         if (!nip) continue;
                         
@@ -825,6 +877,22 @@
                 if (this.errorList.length === 0) {
                     this.showErrorUI = false;
                     this.submitToServer();
+                }
+            },
+            
+            removeError(index) {
+                if (confirm('Yakin ingin menghapus data peserta ini? Data tidak akan dimasukkan ke database.')) {
+                    this.errorList.splice(index, 1);
+                    if (this.errorList.length === 0) {
+                        this.showErrorUI = false;
+                        if (this.validList.length > 0) {
+                            this.submitToServer();
+                        } else {
+                            this.resetErrorState();
+                            this.$refs.excelInput.value = '';
+                            this.$refs.photosInput.value = '';
+                        }
+                    }
                 }
             },
 

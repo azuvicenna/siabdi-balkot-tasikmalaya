@@ -557,8 +557,8 @@
 
                         if (detection) {
                             if (!this.faceMatcher) {
-                                this.liveStatus = 'success';
-                                this.liveMessage = 'Wajah terdeteksi. Klik ambil foto.';
+                                this.liveStatus = 'not_detected';
+                                this.liveMessage = 'Wajah peserta tidak terdaftar pada sistem.';
                                 this.liveDistanceInfo = '';
                                 return;
                             }
