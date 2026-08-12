@@ -18,10 +18,10 @@ class SettingSeeder extends Seeder
             'value' => 'buka'
         ]);
 
-        Setting::create([
-            'key' => 'limit_voucher',
-            'value' => '1'
-        ]);
+        // Setting::create([
+        //     'key' => 'limit_voucher',
+        //     'value' => '1'
+        // ]);
         
         Setting::create([
             'key' => 'geofencing',
