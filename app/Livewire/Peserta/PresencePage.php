@@ -251,11 +251,9 @@ class PresencePage extends Component
 
     public function render()
     {
-        $pesertaTerdaftar = Participant::whereNotNull('face_descriptor')
-            ->get(['nama', 'nip', 'unit_kerja', 'face_descriptor']);
-
-        return view('livewire.peserta.presence-page', [
-            'pesertaTerdaftar' => $pesertaTerdaftar
-        ]);
+        // face_descriptor TIDAK dikirim lewat Livewire render untuk menghindari
+        // payload membengkak (bisa beberapa MB jika peserta ratusan) → penyebab error 500.
+        // Data descriptor sekarang di-fetch oleh JavaScript via /api/face-descriptors.
+        return view('livewire.peserta.presence-page');
     }
 }

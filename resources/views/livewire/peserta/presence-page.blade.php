@@ -1,4 +1,4 @@
-<div x-data="presencePage(@js($pesertaTerdaftar))" x-init="initLocation()">
+<div x-data="presencePage()" x-init="initLocation()">
 
     @error('system')
         <div class="fixed top-4 left-0 right-0 z-60 px-4 animate-bounce">
@@ -348,7 +348,7 @@
 </div>
 
 <script>
-    function presencePage(pesertaDariBackend) {
+    function presencePage() {
         return {
             showLoading: true,
             showDenied: false,
@@ -372,7 +372,7 @@
 
             faceMatcher: null,
             lastDetectedLabel: null,
-            participantsData: pesertaDariBackend || [],
+            participantsData: [],
 
             async initLocation() {
                 window.addEventListener('location-radius-error', () => {
@@ -399,17 +399,25 @@
                     this.requestLocation();
                 }
 
-                if (typeof faceapi !== 'undefined') {
-                    const MODEL_URL = '/models';
-                    await Promise.all([
-                        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-                        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
-                        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-                    ]).then(() => {
-                        console.log('Semua AI Model siap!');
-                        this.initFaceMatcher();
-                    }).catch(console.error);
-                }
+                // Load model AI & data wajah peserta secara paralel
+                // Face descriptor di-fetch terpisah via API agar tidak membebani Livewire payload
+                const loadModels = typeof faceapi !== 'undefined'
+                    ? Promise.all([
+                        faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+                        faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+                        faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+                    ])
+                    : Promise.resolve();
+
+                const loadDescriptors = fetch('/api/face-descriptors')
+                    .then(res => res.json())
+                    .then(data => { this.participantsData = data; })
+                    .catch(err => console.error('Gagal load face-descriptors:', err));
+
+                Promise.all([loadModels, loadDescriptors]).then(() => {
+                    console.log('AI Model & data wajah siap!');
+                    this.initFaceMatcher();
+                }).catch(console.error);
             },
 
             initFaceMatcher() {

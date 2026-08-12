@@ -814,6 +814,11 @@
                         
                         this.statusText = `Memproses wajah untuk ${nama} (${i+1}/${total})...`;
                         this.progressPercent = 10 + Math.round((i / total) * 80);
+
+                        // Yield ke browser setiap 5 peserta agar UI tidak freeze & progress bar bisa update
+                        if (i % 5 === 0) {
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
                         
                         const descriptor = await this.getFaceDescriptor(photoFile);
                         if (!descriptor) {
@@ -901,8 +906,10 @@
                 this.statusText = 'Mengirim data ke server... Tunggu sebentar.';
                 this.progressPercent = 95;
                 
-                this.$wire.set('import_data_json', JSON.stringify(this.validList));
-                this.$wire.call('processImportData');
+                // Kirim data JSON langsung sebagai argumen method, BUKAN via $wire.set().
+                // $wire.set() dulu menyebabkan browser freeze karena harus serialize
+                // ratusan array float 128 angka ke Livewire property terlebih dahulu.
+                this.$wire.call('processImportData', JSON.stringify(this.validList));
                 
                 window.addEventListener('close-modal-import', () => {
                     this.resetErrorState();

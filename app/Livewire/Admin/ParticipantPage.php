@@ -5,6 +5,7 @@ namespace App\Livewire\Admin;
 use App\Models\Participant;
 use App\Models\Setting;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Rule;
 use Livewire\Attributes\Title;
@@ -26,7 +27,6 @@ class ParticipantPage extends Component
 
     // Import Properties
     public $import_photos = [];
-    public $import_data_json = '[]';
     public $maxUploadSize = 10240;
 
     // Form Properties
@@ -66,7 +66,7 @@ class ParticipantPage extends Component
 
     public function resetImportData()
     {
-        $this->reset(['import_photos', 'import_data_json']);
+        $this->reset(['import_photos']);
     }
 
     public function store()
@@ -126,14 +126,18 @@ class ParticipantPage extends Component
         }
     }
 
-    public function processImportData()
+    /**
+     * Menerima data JSON langsung sebagai argumen untuk menghindari
+     * $wire.set('import_data_json') yang menyebabkan browser freeze
+     * akibat payload Livewire yang terlalu besar.
+     */
+    public function processImportData(string $importDataJson = '[]')
     {
         $this->validate([
-            'import_data_json' => 'required',
-            'import_photos.*'  => 'image|max:' . $this->maxUploadSize,
+            'import_photos.*' => 'image|max:' . $this->maxUploadSize,
         ]);
 
-        $data = json_decode($this->import_data_json, true);
+        $data = json_decode($importDataJson, true);
         if (!is_array($data) || empty($data)) {
             session()->flash('error', 'Data excel kosong atau tidak valid.');
             return;
@@ -192,9 +196,12 @@ class ParticipantPage extends Component
 
             if (!empty($dataToInsert)) {
                 Participant::insert($dataToInsert);
+                // Invalidate cache face_descriptor agar peserta baru langsung bisa
+                // dikenali di halaman absensi tanpa menunggu cache kedaluwarsa
+                Cache::forget('face_descriptors');
             }
 
-            $this->reset(['import_photos', 'import_data_json']);
+            $this->reset(['import_photos']);
             $this->dispatch('close-modal-import');
 
             session()->flash('message', 'Sukses! ' . count($dataToInsert) . ' data peserta baru berhasil diimport beserta fotonya.');
