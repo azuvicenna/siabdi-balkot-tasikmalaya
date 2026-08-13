@@ -6,7 +6,6 @@ use App\Models\Participant;
 use App\services\CouponGeneratorService;
 use Exception;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;

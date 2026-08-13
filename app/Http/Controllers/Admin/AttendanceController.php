@@ -10,13 +10,11 @@ class AttendanceController extends Controller
 {
     public function closeAndRedirect()
     {
-        // 1. Update status absensi jadi 'tutup'
         Setting::updateOrCreate(
             ['key' => 'status_absensi'],
             ['value' => 'tutup']
         );
 
-        // 2. Redirect ke halaman undian
         return redirect()->route('reward-system.undian');
     }
 }

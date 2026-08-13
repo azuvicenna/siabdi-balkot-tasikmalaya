@@ -5,7 +5,6 @@ namespace App\Livewire\Admin;
 use App\Models\Reward;
 use App\Models\RewardCategory;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -59,8 +58,10 @@ class RewardConfigPage extends Component
             'nama_kategori' => $this->nama_kategori
         ]);
 
-        // Reset input khusus kategori
-        $this->nama_kategori = '';
+        // Reset SEMUA property termasuk $gambar agar Livewire tidak
+        // mencoba serialize temporary file saat re-render → penyebab freeze
+        $this->reset(['nama_kategori', 'gambar', 'nama_hadiah', 'reward_category_id', 'stok', 'isEditing', 'rewardId', 'oldGambar']);
+        $this->status_hadiah = 'Aktif';
 
         $this->dispatch('close-modal');
         session()->flash('message', 'Kategori baru berhasil ditambahkan.');
@@ -192,7 +193,7 @@ class RewardConfigPage extends Component
 
     public function resetForm()
     {
-        $this->reset(['nama_hadiah', 'reward_category_id', 'stok', 'status_hadiah', 'gambar', 'oldGambar', 'rewardId', 'isEditing']);
+        $this->reset(['nama_kategori', 'nama_hadiah', 'reward_category_id', 'stok', 'status_hadiah', 'gambar', 'oldGambar', 'rewardId', 'isEditing']);
         $this->status_hadiah = 'Aktif';
     }
 
