@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "6dc18b8db6add59f1b5bec3dfb7f75ef",
+    "content-hash": "021d4eeb7490c8756397b95d3f430a02",
     "packages": [
         {
             "name": "aws/aws-crt-php",
@@ -6918,12 +6918,12 @@
             "version": "v5.6.2",
             "source": {
                 "type": "git",
-                "url": "https://github.com/vlucas/phpdotenv.git",
+                "url": "https://github.com/phpdotenv/phpdotenv.git",
                 "reference": "24ac4c74f91ee2c193fa1aaa5c249cb0822809af"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/vlucas/phpdotenv/zipball/24ac4c74f91ee2c193fa1aaa5c249cb0822809af",
+                "url": "https://api.github.com/repos/phpdotenv/phpdotenv/zipball/24ac4c74f91ee2c193fa1aaa5c249cb0822809af",
                 "reference": "24ac4c74f91ee2c193fa1aaa5c249cb0822809af",
                 "shasum": ""
             },
@@ -10410,8 +10410,11 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.2"
+        "php": "^8.3 || ^8.4 || ^8.5"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.9.0"
+    "platform-overrides": {
+        "php": "8.4.15"
+    },
+    "plugin-api-version": "2.6.0"
 }
