@@ -1,7 +1,7 @@
 ############################################################################################
 # 2) PHP STAGE — Main Production Container
 ##############################################
-FROM php:8.3-fpm AS php_app
+FROM php:8.4-fpm AS php_app
 
 # Set working directory
 WORKDIR /var/www

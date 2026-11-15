@@ -7,6 +7,9 @@ services:
     restart: unless-stopped
     tty: true
     working_dir: /var/www
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - ./:/var/www
       - ./php.ini:/usr/local/etc/php/php.ini
@@ -22,14 +25,14 @@ services:
     container_name: mysql
     restart: unless-stopped
     ports:
-      - "3306:3306"
+      - "${FORWARD_DB_PORT:-${DB_PORT:-3306}}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     environment:
-      - MYSQL_DATABASE=undian_dinkes
-      - MYSQL_USER=undian_dinkes_db
-      - MYSQL_PASSWORD=Dinkes2@25!!@
-      - MYSQL_ROOT_PASSWORD=Dinkes2@25!!@
+      MYSQL_DATABASE: ${DB_DATABASE:-undian_dinkes}
+      MYSQL_USER: ${DB_USERNAME:-undian_dinkes_db}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-Dinkes2@25!!@}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-${DB_PASSWORD:-Dinkes2@25!!@}}
     networks:
       - app-network
     healthcheck:
@@ -43,7 +46,7 @@ services:
     container_name: nginx
     restart: always
     ports:
-      - "8000:80"
+      - "${APP_PORT:-8000}:80"
       # - "80:80"
       # - "443:443"
     volumes:
